@@ -1,0 +1,184 @@
+{
+    "available_tools": [
+      {
+        "name": "list_directory",
+        "description": "Lists the contents of a directory",
+        "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+        "parameters": [
+          {
+            "name": "path",
+            "type": "string",
+            "description": "Path of the directory to list"
+          },
+          {
+            "name": "pattern",
+            "type": "string",
+            "description": "Optional pattern to filter files",
+            "required": false
+          }
+        ],
+        "return": {
+          "type": "array",
+          "description": "List of files and directories"
+        }
+      },
+      {
+        "name": "check_file_exists",
+        "description": "Checks if a file exists at the specified path",
+        "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+        "parameters": [
+          {
+            "name": "path",
+            "type": "string",
+            "description": "Path to check"
+          }
+        ],
+        "return": {
+          "name": "exists",
+          "type": "boolean",
+          "description": "Whether the file exists"
+        }
+      },
+      {
+        "name": "create_directory",
+        "description": "Creates a new directory at the specified path",
+        "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+        "parameters": [
+          {
+            "name": "path",
+            "type": "string",
+            "description": "Path where the directory should be created"
+          }
+        ],
+        "return": {
+          "type": "string",
+          "description": "Success message or error information"
+        }
+      },
+      {
+        "name": "execute_command",
+        "description": "Executes a shell command",
+        "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+        "parameters": [
+          {
+            "name": "command",
+            "type": "string",
+            "description": "Command to execute"
+          }
+        ],
+        "return": {
+          "type": "object",
+          "description": "Command execution result"
+        }
+      },
+      {
+        "name": "parse_json",
+        "description": "Parses a JSON string into an object",
+        "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+        "parameters": [
+          {
+            "name": "json",
+            "type": "string",
+            "description": "JSON string to parse"
+          }
+        ],
+        "return": {
+          "type": "object",
+          "description": "Parsed JSON object"
+        }
+      },
+      {
+        "name": "update_json",
+        "description": "Updates a JSON object by appending, replacing, or removing values at a specified path",
+        "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+        "parameters": [
+          {
+            "name": "object",
+            "type": "object",
+            "description": "JSON object to update"
+          },
+          {
+            "name": "path",
+            "type": "string",
+            "description": "Path to the property to update (use dot notation for nested properties)"
+          },
+          {
+            "name": "operation",
+            "type": "string",
+            "description": "Operation to perform (append, replace, remove)",
+            "enum": ["append", "replace", "remove"]
+          },
+          {
+            "name": "value",
+            "type": "any",
+            "description": "Value to use in the operation (not required for remove operation)",
+            "required": false
+          }
+        ],
+        "return": {
+          "type": "object",
+          "description": "Updated JSON object"
+        }
+      },
+      {
+        "name": "write_file",
+        "description": "Creates or overwrites a file with the specified content",
+        "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+        "parameters": [
+          {
+            "name": "path",
+            "type": "string",
+            "description": "Path where the file should be created or overwritten"
+          },
+          {
+            "name": "content",
+            "type": "string",
+            "description": "Content to write to the file"
+          }
+        ],
+        "return": {
+          "type": "string",
+          "description": "Success message or error information"
+        }
+      },
+      {
+        "name": "read_file",
+        "description": "Reads the content of a file",
+        "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+        "parameters": [
+          {
+            "name": "path",
+            "type": "string",
+            "description": "Path of the file to read"
+          }
+        ],
+        "return": {
+          "type": "string",
+          "description": "Content of the file"
+        }
+      },
+      {
+        "name": "http_request",
+        "description": "Makes an HTTP request to a URL",
+        "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+        "parameters": [
+          {
+            "name": "url",
+            "type": "string",
+            "description": "URL to request"
+          },
+          {
+            "name": "method",
+            "type": "string",
+            "description": "HTTP method (GET, POST, etc.)",
+            "required": false,
+            "default_value": "GET"
+          }
+        ],
+        "return": {
+          "type": "object",
+          "description": "HTTP response"
+        }
+      }
+    ]
+}

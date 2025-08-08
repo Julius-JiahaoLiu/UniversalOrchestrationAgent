@@ -1,0 +1,106 @@
+{
+  "name": "Email Validation and Account Creation Workflow",
+  "description": "A simple workflow to validate an email, create an account, and handle parallel tasks",
+  "root": {
+    "type": "sequence",
+    "description": "This workflow validates an email address, creates an account, sends a welcome email, updates the database, and waits for email confirmation.",
+    "steps": [
+      {
+        "type": "user_input",
+        "prompt": "Enter your email address",
+        "inputType": "text",
+        "outputVariable": "userEmail"
+      },
+      {
+        "type": "tool_call",
+        "toolName": "validate_email",
+        "parameters": {
+          "email": "${userEmail}"
+        },
+        "outputVariable": "emailValid"
+      },
+      {
+        "type": "branch",
+        "condition": {
+          "type": "comparison",
+          "left": "${emailValid}",
+          "operator": "==",
+          "right": "true"
+        },
+        "ifTrue": {
+          "type": "tool_call",
+          "toolName": "create_account",
+          "parameters": {
+            "email": "${userEmail}"
+          },
+          "outputVariable": "account"
+        },
+        "ifFalse": {
+          "type": "tool_call",
+          "toolName": "log_error",
+          "parameters": {
+            "error": "invalid_email",
+            "input": "${userEmail}"
+          },
+          "outputVariable": "errorLog"
+        }
+      },
+      {
+        "type": "parallel",
+        "branches": [
+          {
+            "type": "tool_call",
+            "toolName": "send_welcome_email",
+            "parameters": {
+              "email": "${userEmail}"
+            },
+            "outputVariable": "emailSent"
+          },
+          {
+            "type": "tool_call",
+            "toolName": "update_database",
+            "parameters": {
+              "account_id": "${account.id}"
+            },
+            "outputVariable": "dbUpdated"
+          }
+        ]
+      },
+      {
+        "type": "wait_for_event",
+        "eventSource": "email-service",
+        "eventType": "email-confirmed",
+        "entityId": "${account.id}",
+        "timeout": 300,
+        "outputVariable": "emailConfirmed"
+      },
+      {
+        "type": "loop",
+        "condition": {
+          "type": "comparison",
+          "left": "${retryCount}",
+          "operator": "<",
+          "right": "3"
+        },
+        "iterationVariable": "retryCount",
+        "body": {
+          "type": "tool_call",
+          "toolName": "check_status",
+          "parameters": {
+            "account_id": "${account.id}"
+          },
+          "outputVariable": "status"
+        }
+      },
+      {
+        "type": "tool_call",
+        "toolName": "finalize_setup",
+        "parameters": {
+          "account_id": "${account.id}",
+          "status": "${status}"
+        },
+        "outputVariable": "setupComplete"
+      }
+    ]
+  }
+}

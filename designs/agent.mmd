@@ -1,0 +1,64 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ADD8E6', 'primaryTextColor': '#000', 'primaryBorderColor': '#7FB3D5', 'lineColor': '#7FB3D5', 'secondaryColor': '#E8F4F8', 'tertiaryColor': '#fff'}, 'themeCSS': '.cluster-label { font-size: 16px !important; font-weight: bold !important; text-anchor: start !important; }'}}%%
+
+flowchart TD
+    %% Entry Point
+    Start([Start Agent]) --> Phase1
+    
+    %% Phase 1 - Available Tools Onboarding
+    subgraph Phase1 ["Phase 1: Onboarding"]
+        Input1[<b>📝 Developer Input</b>: tools's functionality and ARN]
+        ToolProcessor[<b>🤖 Tool Processor</b>: unify into defined schema]
+        ToolValidator[<b>🔍 Tool Validation</b>: validate against defined schema]
+        Input1 -->|NL description| ToolProcessor
+        ToolProcessor -->|Processed tools| ToolValidator
+        Input1 -->|Pre-processed tools| ToolValidator
+    end
+    
+    %% Phase 2 - Planning & User Reflection
+    subgraph Phase2 ["Phase 2: Planning"]
+        Input2[<b>📝 Developer Input</b>: description of workflow topology]
+        Planner[<b>🤖 Iterative Planner</b>]
+        Review[<b>🤔 Developer Review</b>]
+        Input2 --> Planner
+        Planner -->|Workflow plan| Review
+        Review -->|Feedback| Planner
+    end
+    
+    %% Phase 3 - Execution & Monitor
+    subgraph Phase3 ["Phase 3: Execution"]
+        Translator[<b>🎭 Translator</b>: transform plan into ASL for Step Func / Executable codes]
+        StateMachine[<b>State Machine</b>: deploy and execute via Step Functions]
+        Orchestrator[<b>Orchestrator</b>: orchestration implementated in Java / Python]
+        Executor[<b>⚙️ Executor</b>: execute without LLM inference latency]
+
+        Translator -->|Aamzon State Language| StateMachine
+        Translator -->|Executable Code| Orchestrator
+        StateMachine --> Executor
+        Orchestrator --> Executor
+    end
+    
+    %% Exit Point
+    Exit([Exit])
+    
+    %% Inter-phase connections
+    ToolValidator -->|Validated tools| Phase2
+    Review -->|Plan approved| Phase3
+    Executor -->|Session data saved| Exit
+    
+    %% Styling
+    classDef phase1Style fill:#E8F4F8,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef phase2Style fill:#F5FFF5,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef phase3Style fill:#ADD8E6,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef decisionStyle fill:#FFE4B5,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef processStyle fill:#F0F8FF,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef startEndStyle fill:#DDA0DD,stroke:#7FB3D5,stroke-width:3px,color:#000
+    
+    %% Apply styles
+    class ToolProcessor,ToolValidator,Review,Executor,StateMachine,Orchestrator,Planner phase1Style
+    class Input1,Input2,Translator processStyle
+    class Start,Exit startEndStyle
+    
+    %% Subgraph styling to prevent title overlap
+    style Phase1 fill:#F8FCFF,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style Phase2 fill:#F8FCFF,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style Phase3 fill:#F8FCFF,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5

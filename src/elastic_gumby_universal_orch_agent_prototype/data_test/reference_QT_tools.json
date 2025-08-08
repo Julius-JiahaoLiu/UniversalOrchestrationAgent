@@ -1,0 +1,390 @@
+{
+  "available_tools": [
+    {
+      "name": "UpdateAgentInstance",
+      "description": "Updates the status of an agent instance in the platform",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "type": "string",
+          "description": "ID of the agent instance to update"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "description": "New status of the agent (e.g., 'RUNNING', 'COMPLETED', 'FAILED')"
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Result of the update operation"
+      }
+    },
+    {
+      "name": "GetJob",
+      "description": "Retrieves job information from the platform",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "job_id",
+          "type": "string",
+          "description": "ID of the job to retrieve"
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Details of the requested job"
+      }
+    },
+    {
+      "name": "UpdateJob",
+      "description": "Updates job information in the platform",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "job_id",
+          "type": "string",
+          "description": "ID of the job to update"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "description": "New status of the job",
+          "required": false
+        },
+        {
+          "name": "context",
+          "type": "object",
+          "description": "Additional context information for the job",
+          "required": false
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Result of the update operation"
+      }
+    },
+    {
+      "name": "PutJobPlan",
+      "description": "Stores the job plan in the platform",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "job_id",
+          "type": "string",
+          "description": "ID of the job"
+        },
+        {
+          "name": "plan",
+          "type": "object",
+          "description": "Job plan details"
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Result of the operation"
+      }
+    },
+    {
+      "name": "InvokeAgent",
+      "description": "Invokes another agent in the platform",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "agent_type",
+          "type": "string",
+          "description": "Type of agent to invoke"
+        },
+        {
+          "name": "job_id",
+          "type": "string",
+          "description": "ID of the job"
+        },
+        {
+          "name": "context",
+          "type": "object",
+          "description": "Context information for the agent",
+          "required": false
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Result of the agent invocation"
+      }
+    },
+    {
+      "name": "CreateHitlTask",
+      "description": "Creates a human-in-the-loop task in the platform",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "job_id",
+          "type": "string",
+          "description": "ID of the job"
+        },
+        {
+          "name": "task_type",
+          "type": "string",
+          "description": "Type of HITL task (e.g., 'FILE_IMPORT', 'IMPORT_FINDINGS', 'ASSESSMENT_REPORT')"
+        },
+        {
+          "name": "task_details",
+          "type": "object",
+          "description": "Details for the HITL task"
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Created HITL task information"
+      }
+    },
+    {
+      "name": "StartHitlTask",
+      "description": "Starts a previously created HITL task",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "task_id",
+          "type": "string",
+          "description": "ID of the HITL task to start"
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Result of starting the HITL task"
+      }
+    },
+    {
+      "name": "CloseHitlTask",
+      "description": "Closes a HITL task",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "task_id",
+          "type": "string",
+          "description": "ID of the HITL task to close"
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Result of closing the HITL task"
+      }
+    },
+    {
+      "name": "CreateArtifactUploadUrl",
+      "description": "Creates a pre-signed URL for uploading artifacts",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "job_id",
+          "type": "string",
+          "description": "ID of the job"
+        },
+        {
+          "name": "artifact_type",
+          "type": "string",
+          "description": "Type of artifact"
+        },
+        {
+          "name": "content_type",
+          "type": "string",
+          "description": "Content type of the artifact"
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Pre-signed URL and metadata for uploading"
+      }
+    },
+    {
+      "name": "CreateArtifactDownloadUrl",
+      "description": "Creates a pre-signed URL for downloading artifacts",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "artifact_id",
+          "type": "string",
+          "description": "ID of the artifact to download"
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Pre-signed URL for downloading"
+      }
+    },
+    {
+      "name": "StoreS3TableData",
+      "description": "Stores parsed data in S3 Tables",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "job_id",
+          "type": "string",
+          "description": "ID of the job"
+        },
+        {
+          "name": "data",
+          "type": "object",
+          "description": "Data to store in S3 Tables"
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Result of the storage operation"
+      }
+    },
+    {
+      "name": "RetrieveS3TableData",
+      "description": "Retrieves data from S3 Tables",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "job_id",
+          "type": "string",
+          "description": "ID of the job"
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Retrieved data from S3 Tables"
+      }
+    },
+    {
+      "name": "GenerateAssessmentReport",
+      "description": "Generates an assessment report based on the imported data",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "job_id",
+          "type": "string",
+          "description": "ID of the job"
+        },
+        {
+          "name": "input_data",
+          "type": "object",
+          "description": "Input data for assessment"
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Generated assessment report"
+      }
+    },
+    {
+      "name": "ParseImportFile",
+      "description": "Parses an imported file and extracts structured data",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "file_url",
+          "type": "string",
+          "description": "URL to download the file"
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Structured data extracted from the file"
+      }
+    },
+    {
+      "name": "CreateDynamoDBItem",
+      "description": "Creates a new item in DynamoDB",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "table_name",
+          "type": "string",
+          "description": "Name of the DynamoDB table"
+        },
+        {
+          "name": "item",
+          "type": "object",
+          "description": "Item data to store in DynamoDB"
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Result of the create operation"
+      }
+    },
+    {
+      "name": "UpdateDynamoDBItem",
+      "description": "Updates an existing item in DynamoDB",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "table_name",
+          "type": "string",
+          "description": "Name of the DynamoDB table"
+        },
+        {
+          "name": "key",
+          "type": "object",
+          "description": "Key of the item to update"
+        },
+        {
+          "name": "update_expression",
+          "type": "string",
+          "description": "DynamoDB update expression"
+        },
+        {
+          "name": "expression_attribute_values",
+          "type": "object",
+          "description": "Values for the update expression"
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Result of the update operation"
+      }
+    },
+    {
+      "name": "GetDynamoDBItem",
+      "description": "Retrieves an item from DynamoDB",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "table_name",
+          "type": "string",
+          "description": "Name of the DynamoDB table"
+        },
+        {
+          "name": "key",
+          "type": "object",
+          "description": "Key of the item to retrieve"
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Retrieved item from DynamoDB"
+      }
+    },
+    {
+      "name": "NotifyAgent",
+      "description": "Notifies an agent about an event or status change",
+      "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "type": "string",
+          "description": "ID of the agent to notify"
+        },
+        {
+          "name": "notification_type",
+          "type": "string",
+          "description": "Type of notification"
+        },
+        {
+          "name": "notification_data",
+          "type": "object",
+          "description": "Data associated with the notification"
+        }
+      ],
+      "return": {
+        "type": "object",
+        "description": "Result of the notification operation"
+      }
+    }
+  ]
+}

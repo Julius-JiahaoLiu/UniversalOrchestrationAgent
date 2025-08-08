@@ -1,0 +1,3 @@
+{
+    "workflow_description": "Start a long-running data processing job, then wait for the job to complete before generating a report from the results. If the job takes longer than 5 minutes, send a notification to the user."
+}

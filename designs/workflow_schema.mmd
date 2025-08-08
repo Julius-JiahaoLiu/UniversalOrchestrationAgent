@@ -1,0 +1,102 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ADD8E6', 'primaryTextColor': '#000', 'primaryBorderColor': '#7FB3D5', 'lineColor': '#7FB3D5', 'secondaryColor': '#E8F4F8', 'tertiaryColor': '#fff'}}}%%
+
+flowchart TD
+    %% Core Workflow Structure
+    subgraph CoreSection ["Workflow Input Schema"]
+        WorkflowRoot["⚡ <b>Workflow</b>
+        • name: string
+        • description: string
+        • section_update: int
+        • root: Container📦"]
+        
+        Sequence["➤ <b>SequenceContainer</b>
+        • type: sequence
+        • steps: ContainerOrNode[]"]
+        
+        Parallel["⫸ <b>ParallelContainer</b>
+        • type: parallel
+        • branches: ContainerOrNode[]"]
+    end
+    
+    %% Node Types Section
+    subgraph NodeSection ["Node Types"]
+        
+        Branch["🔀 <b>Branch</b>
+        • condition: Condition
+        • ifTrue: ContainerOrNode
+        • ifFalse: ContainerOrNode"]
+        
+        Loop["🔁 <b>Loop</b>
+        • condition: Condition
+        • body: ContainerOrNode
+        • iterationVariable: string"]
+
+        ToolCall["🛠️ <b>ToolCall</b>
+        • toolName: string
+        • parameters: object
+        • outputVariable: string"]
+        
+        WaitEvent["⏰ <b>WaitForEvent</b>
+        • eventSource: string
+        • entityId: string
+        • onTimeout: ContainerOrNode"]
+        
+        UserInput["👤 <b>UserInput</b>
+        • prompt: string
+        • inputType: enum
+        • outputVariable: object"]
+    end
+    
+    %% Condition Logic Section
+    subgraph ConditionSection ["Condition Types"]
+        
+        Comparison["🟰 <b>ComparisonCondition</b>
+        • left: VariableReference
+        • operator: string
+        • right: VariableReference"]
+        
+        Logical["🧮 <b>LogicalCondition</b>
+        • type: logical
+        • operator: [and, or]
+        • conditions: Condition[]"]
+    end
+    
+    %% Variable Reference Section
+    subgraph VariableSection ["Variable Reference"]
+        SingleVarRef["🔗 <b>ConditionVarReference</b>
+        {% $varName.property %}"]
+
+        ParameterVarRef["🪝 <b>ParameterVarReference</b>
+        {% $var1 & ' ' & $var2 %}"]
+    end
+    
+    %% Core Relationships
+    WorkflowRoot --> Sequence
+    WorkflowRoot --> Parallel
+    
+    CoreSection -->|contains| NodeSection
+    
+    %% Condition Relationships
+    NodeSection -->|contains| ConditionSection
+    NodeSection -->|uses| VariableSection
+    
+    %% Styling
+    classDef coreStyle fill:#E8F4F8,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef containerStyle fill:#ADD8E6,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef nodeStyle fill:#B8E6B8,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef conditionStyle fill:#FFE4B5,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef variableStyle fill:#F0E68C,stroke:#7FB3D5,stroke-width:2px,color:#000
+    
+    %% Apply styles
+    class WorkflowRoot,Interface coreStyle
+    class Container,Sequence,Parallel containerStyle
+    class Node,ToolCall,UserInput,Branch,Loop,WaitEvent nodeStyle
+    class Condition,Comparison,Logical conditionStyle
+    class SingleVarRef,ParameterVarRef variableStyle
+    
+    %% Subgraph styling
+    style CoreSection fill:#F8FCFF,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    %% style ContainerSection fill:#F0F8FF,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style NodeSection fill:#F5FFF5,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style ConditionSection fill:#FFF8E1,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style VariableSection fill:#FFFACD,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5

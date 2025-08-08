@@ -1,0 +1,376 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Workflow Orchestration Schema",
+  "description": "Schema for defining workflow orchestration with actions, branching, loops, and parallelism. Variables are referenced using {% $variableName %} JSONata syntax throughout the workflow.",
+  "type": "object",
+  "required": ["name", "description", "root"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the workflow"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of what the workflow does"
+    },
+    "section_update": {
+      "type": "integer",
+      "description": "Optional: 1-indexed section number to update (if updating an existing section). If not provided, this creates a new section."
+    },
+    "root": {
+      "$ref": "#/definitions/ContainerOrNode"
+    }
+  },
+  "definitions": {
+    "VariableReference": {
+      "type": "string",
+      "pattern": "^\\{\\%[^\\[\\]\\(\\)]*\\$[a-zA-Z_][\\w\\.]*[^\\[\\]\\(\\)]*\\%\\}$",
+      "description": "A valid JSONata expression referencing one or more workflow variables. E.g. {% $varName1 & ' ' & $varName2 %} without array access [] or function calls ()."
+    },
+    "SingleVariableReference": {
+      "type": "string",
+      "pattern": "^\\{\\%\\s*\\$[a-zA-Z_][\\w\\.]*\\s*\\%\\}$",
+      "description": "A single variable reference. E.g.: {% $varName.property %} without array access [] or function calls () allowed."
+    },
+    "WaitForEvent": {
+      "type": "object",
+      "required": ["type", "eventSource", "eventType"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["wait_for_event"],
+          "default": "wait_for_event",
+          "description": "Type identifier for event waiting nodes"
+        },
+        "eventSource": {
+          "type": "string",
+          "description": "Source system or component that will generate the event (e.g., 'hitl', 'external-api', 'scheduler')"
+        },
+        "eventType": {
+          "type": "string",
+          "description": "Type of event to wait for (e.g., 'task-completed', 'form-submitted', 'approval-granted')"
+        },
+        "entityId": {
+          "$ref": "#/definitions/SingleVariableReference",
+          "description": "ID of the entity related to the event (e.g., task ID, form ID)."
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "Maximum time in seconds to wait for the event before timing out"
+        },
+        "outputVariable": {
+          "type": "string",
+          "description": "Variable name to store the event data when received."
+        },
+        "onTimeout": {
+          "$ref": "#/definitions/ContainerOrNode",
+          "description": "Container or node to execute if waiting for the event times out"
+        }
+      }
+    },
+    "Container": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["sequence", "parallel"],
+          "description": "Type of container"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of what this container does"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "enum": ["sequence"] } }
+          },
+          "then": {
+            "$ref": "#/definitions/SequenceContainer"
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "enum": ["parallel"] } }
+          },
+          "then": {
+            "$ref": "#/definitions/ParallelContainer"
+          }
+        }
+      ]
+    },
+    "Node": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["tool_call", "user_input", "branch", "loop", "wait_for_event"],
+          "description": "Type of the node"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of what this node does"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "enum": ["tool_call"] } }
+          },
+          "then": {
+            "$ref": "#/definitions/ToolCall"
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "enum": ["user_input"] } }
+          },
+          "then": {
+            "$ref": "#/definitions/UserInput"
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "enum": ["branch"] } }
+          },
+          "then": {
+            "$ref": "#/definitions/Branch"
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "enum": ["loop"] } }
+          },
+          "then": {
+            "$ref": "#/definitions/Loop"
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "enum": ["wait_for_event"] } }
+          },
+          "then": {
+            "$ref": "#/definitions/WaitForEvent"
+          }
+        }
+      ]
+    },
+    "ToolCall": {
+      "type": "object",
+      "required": ["toolName", "parameters", "type", "outputVariable"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["tool_call"],
+          "default": "tool_call",
+          "description": "Type identifier for tool call nodes"
+        },
+        "toolName": {
+          "type": "string",
+          "description": "Name of the tool to call"
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Parameters for the tool call. String values can be static or dynamic (JSONata expressions wrapped in {% ... %}).",
+          "additionalProperties": {
+            "oneOf": [
+              { "$ref": "#/definitions/VariableReference" },
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "outputVariable": {
+          "type": "string",
+          "description": "Variable name to store the output of this tool call."
+        },
+        "errorHandler": {
+          "$ref": "#/definitions/ContainerOrNode",
+          "description": "Container or node to execute if this tool call fails"
+        }
+      }
+    },
+    "UserInput": {
+      "type": "object",
+      "required": ["prompt", "type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["user_input"],
+          "default": "user_input",
+          "description": "Type identifier for user input nodes"
+        },
+        "prompt": {
+          "type": "string",
+          "description": "Message to display to the user when requesting input."
+        },
+        "inputType": {
+          "type": "string",
+          "enum": ["text", "number", "boolean", "selection"],
+          "default": "text",
+          "description": "Type of input expected from the user"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of options for selection input type."
+        },
+        "outputVariable": {
+          "type": "string",
+          "description": "Variable name to store the user input."
+        }
+      }
+    },
+    "Condition": {
+      "type": "object",
+      "oneOf": [
+        {
+          "required": ["type", "left", "operator", "right"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["comparison"],
+              "description": "Type of condition"
+            },
+            "left": {
+              "$ref": "#/definitions/SingleVariableReference",
+              "description": "Left operand"
+            },
+            "operator": {
+              "type": "string",
+              "enum": ["=", "!=", ">", "<", ">=", "<=", "in"],
+              "description": "JSONata comparison operators"
+            },
+            "right": {
+              "oneOf": [
+                { "$ref": "#/definitions/SingleVariableReference" },
+                { "type": "number" },
+                { "type": "boolean" }
+              ],
+              "description": "Right operand"
+            }
+          }
+        },
+        {
+          "required": ["type", "operator", "conditions"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["logical"],
+              "description": "Type of condition"
+            },
+            "operator": {
+              "type": "string",
+              "enum": ["and", "or"],
+              "description": "Logical operator"
+            },
+            "conditions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Condition"
+              },
+              "description": "List of conditions to combine with the logical operator"
+            }
+          }
+        }
+      ]
+    },
+    "Branch": {
+      "type": "object",
+      "required": ["type", "condition", "ifTrue", "ifFalse"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["branch"],
+          "default": "branch",
+          "description": "Type identifier for branch nodes"
+        },
+        "condition": {
+          "$ref": "#/definitions/Condition",
+          "description": "Condition to evaluate for branching"
+        },
+        "ifTrue": {
+          "$ref": "#/definitions/ContainerOrNode",
+          "description": "Container or node to execute if condition is true"
+        },
+        "ifFalse": {
+          "$ref": "#/definitions/ContainerOrNode",
+          "description": "Container or node to execute if condition is false"
+        }
+      }
+    },
+    "Loop": {
+      "type": "object",
+      "required": ["type", "condition", "body"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["loop"],
+          "default": "loop",
+          "description": "Type identifier for loop nodes"
+        },
+        "condition": {
+          "$ref": "#/definitions/Condition",
+          "description": "Condition to check for continuation of the loop"
+        },
+        "body": {
+          "$ref": "#/definitions/ContainerOrNode",
+          "description": "Container or node to execute in each iteration"
+        }
+      }
+    },
+    "ParallelContainer": {
+      "type": "object",
+      "required": ["branches", "type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["parallel"],
+          "default": "parallel",
+          "description": "Type identifier for parallel containers"
+        },
+        "branches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContainerOrNode"
+          },
+          "minItems": 2,
+          "description": "Containers or nodes to execute in parallel"
+        }
+      }
+    },
+    "SequenceContainer": {
+      "type": "object",
+      "required": ["steps", "type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["sequence"],
+          "default": "sequence",
+          "description": "Type identifier for sequence containers"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContainerOrNode"
+          },
+          "minItems": 2,
+          "description": "Containers or nodes to execute in sequence"
+        }
+      }
+    },
+    "ContainerOrNode": {
+      "oneOf": [
+        { "$ref": "#/definitions/Container" },
+        { "$ref": "#/definitions/Node" }
+      ]
+    }
+  }
+}

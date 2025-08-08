@@ -1,0 +1,108 @@
+{
+  "name": "Data Processing with Timeout Notification",
+  "description": "This workflow starts a long-running data processing job, waits for it to complete, and generates a report. If the job takes longer than 5 minutes, it sends a notification to the user.",
+  "root": {
+    "type": "sequence",
+    "name": "Combined Workflow Execution",
+    "description": "Sequential execution of all workflow sections",
+    "steps": [
+      {
+        "type": "user_input",
+        "description": "Collect data processing job parameters from user",
+        "prompt": "Please provide the data source to process:",
+        "inputType": "text",
+        "outputVariable": "data_source"
+      },
+      {
+        "type": "user_input",
+        "description": "Collect job configuration parameters",
+        "prompt": "Please provide job configuration parameters as JSON:",
+        "inputType": "text",
+        "outputVariable": "job_config_string"
+      },
+      {
+        "type": "tool_call",
+        "description": "Start the data processing job",
+        "toolName": "start_processing_job",
+        "parameters": {
+          "data_source": "${data_source}",
+          "job_config": {}
+        },
+        "outputVariable": "job_details"
+      },
+      {
+        "type": "wait_for_event",
+        "description": "Wait for the data processing job to complete or timeout after 5 minutes",
+        "eventSource": "data_processing",
+        "eventType": "job_completed",
+        "entityId": "${job_details.job_id}",
+        "timeout": 300,
+        "outputVariable": "job_completion_event",
+        "onTimeout": {
+          "type": "sequence",
+          "steps": [
+            {
+              "type": "user_input",
+              "description": "Get user ID for notification",
+              "prompt": "Job is taking longer than expected. Please provide your user ID to receive a notification when it completes:",
+              "inputType": "text",
+              "outputVariable": "user_id"
+            },
+            {
+              "type": "user_input",
+              "description": "Get notification type preference",
+              "prompt": "How would you like to be notified? (email, sms, push)",
+              "inputType": "selection",
+              "options": [
+                "email",
+                "sms",
+                "push"
+              ],
+              "outputVariable": "notification_type"
+            },
+            {
+              "type": "tool_call",
+              "description": "Send notification to user about long-running job",
+              "toolName": "send_notification",
+              "parameters": {
+                "user_id": "${user_id}",
+                "message": "Your data processing job with ID ${job_details.job_id} is taking longer than expected. You will be notified when it completes.",
+                "notification_type": "${notification_type}"
+              },
+              "outputVariable": "notification_result"
+            }
+          ]
+        }
+      },
+      {
+        "type": "user_input",
+        "description": "Get report format preference",
+        "prompt": "Job completed! What format would you like for your report? (pdf, html, csv)",
+        "inputType": "selection",
+        "options": [
+          "pdf",
+          "html",
+          "csv"
+        ],
+        "outputVariable": "report_format"
+      },
+      {
+        "type": "tool_call",
+        "description": "Generate report for the job",
+        "toolName": "generate_report",
+        "parameters": {
+          "job_id": "${job_completion_event.job_id}",
+          "report_format": "${report_format}"
+        },
+        "outputVariable": "report_result"
+      },
+      {
+        "type": "user_input",
+        "description": "Inform user about the generated report",
+        "prompt": "Your report has been generated and is available at: ${report_result}",
+        "inputType": "text",
+        "outputVariable": "acknowledgement"
+      }
+    ]
+  }
+}

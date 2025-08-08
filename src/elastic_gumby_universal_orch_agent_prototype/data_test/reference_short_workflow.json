@@ -1,0 +1,63 @@
+{
+  "name": "Data Processing and Report Generation Workflow",
+  "description": "Starts a data processing job, waits for completion, and generates a report",
+  "root": {
+    "type": "sequence",
+    "steps": [
+      {
+        "type": "tool_call",
+        "description": "Start the data processing job",
+        "toolName": "start_processing_job",
+        "parameters": {
+          "data_source": "s3://example-bucket/data",
+          "job_config": {
+            "processing_type": "full",
+            "priority": "high"
+          }
+        },
+        "outputVariable": "job_start_result"
+      },
+      {
+        "type": "wait_for_event",
+        "description": "Wait for the job to complete",
+        "eventSource": "data_processing_service",
+        "eventType": "job_completed",
+        "entityId": "${job_start_result.job_id}",
+        "timeout": 300,
+        "outputVariable": "job_completion_event",
+        "onTimeout": {
+          "type": "tool_call",
+          "description": "Notify user about job taking longer than expected",
+          "toolName": "send_notification",
+          "parameters": {
+            "user_id": "current_user",
+            "message": "Your data processing job is taking longer than expected. It will continue running in the background.",
+            "notification_type": "email"
+          },
+          "outputVariable": "timeout_notification_result"
+        }
+      },
+      {
+        "type": "tool_call",
+        "description": "Generate a report from the job results",
+        "toolName": "generate_report",
+        "parameters": {
+          "job_id": "${job_start_result.job_id}",
+          "report_format": "pdf"
+        },
+        "outputVariable": "report_result"
+      },
+      {
+        "type": "tool_call",
+        "description": "Notify user about job completion and report availability",
+        "toolName": "send_notification",
+        "parameters": {
+          "user_id": "current_user",
+          "message": "Your data processing job has completed. The report is available at: ${report_result.report_url}",
+          "notification_type": "email"
+        },
+        "outputVariable": "completion_notification_result"
+      }
+    ]
+  }
+}

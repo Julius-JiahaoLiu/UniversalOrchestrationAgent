@@ -1,0 +1,904 @@
+{
+    "name": "QT Assessment Workflow",
+    "description": "Orchestrates the QT Assessment process including import, assessment, and reporting phases with customer interaction points",
+    "root": {
+        "type": "sequence",
+        "description": "Main sequence for the QT Assessment workflow",
+        "steps": [
+            {
+                "type": "sequence",
+                "description": "Orchestration Agent initialization steps",
+                "steps": [
+                    {
+                        "type": "tool_call",
+                        "toolName": "GetDynamoDBItem",
+                        "description": "Get orchestrator agent metadata from DynamoDB",
+                        "parameters": {
+                            "table_name": "AgentMetadata",
+                            "key": {
+                                "agent_id": "${agent_id}"
+                            }
+                        },
+                        "outputVariable": "agent_metadata"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateAgentInstance",
+                        "description": "Update orchestrator agent status to running",
+                        "parameters": {
+                            "agent_id": "${agent_id}",
+                            "status": "RUNNING"
+                        },
+                        "outputVariable": "update_agent_result"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "GetJob",
+                        "description": "Get job details",
+                        "parameters": {
+                            "job_id": "${job_id}"
+                        },
+                        "outputVariable": "job_details"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "PutJobPlan",
+                        "description": "Store the job plan",
+                        "parameters": {
+                            "job_id": "${job_id}",
+                            "plan": {
+                                "steps": [
+                                    "Import customer data",
+                                    "Review imported data",
+                                    "Perform assessment",
+                                    "Generate assessment report",
+                                    "Review assessment report"
+                                ]
+                            }
+                        },
+                        "outputVariable": "job_plan_result"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateJob",
+                        "description": "Update job status to in progress",
+                        "parameters": {
+                            "job_id": "${job_id}",
+                            "status": "IN_PROGRESS",
+                            "context": {
+                                "current_step": "import_preparation"
+                            }
+                        },
+                        "outputVariable": "update_job_result"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "InvokeAgent",
+                        "description": "Invoke Import SubAgent",
+                        "parameters": {
+                            "agent_type": "IMPORT_SUBAGENT",
+                            "job_id": "${job_id}",
+                            "context": {
+                                "parent_agent_id": "${agent_id}"
+                            }
+                        },
+                        "outputVariable": "import_agent_invocation"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateDynamoDBItem",
+                        "description": "Update DynamoDB item for orchestrator agent",
+                        "parameters": {
+                            "table_name": "AgentMetadata",
+                            "key": {
+                                "agent_id": "${agent_id}"
+                            },
+                            "update_expression": "SET #status = :status, #lastUpdated = :lastUpdated, #expression_attribute_names = :expression_attribute_names",
+                            "expression_attribute_values": {
+                                ":status": "WAITING_FOR_IMPORT",
+                                ":lastUpdated": "${current_timestamp}",
+                                ":expression_attribute_names": {
+                                    "#status": "status",
+                                    "#lastUpdated": "lastUpdated"
+                                }
+                            }
+                        },
+                        "outputVariable": "update_dynamo_result"
+                    }
+                ]
+            },
+            {
+                "type": "sequence",
+                "description": "Import SubAgent processing sequence",
+                "steps": [
+                    {
+                        "type": "tool_call",
+                        "toolName": "CreateDynamoDBItem",
+                        "description": "Create DynamoDB item for Import SubAgent",
+                        "parameters": {
+                            "table_name": "AgentMetadata",
+                            "item": {
+                                "agent_id": "${import_agent_invocation.agent_id}",
+                                "agent_type": "IMPORT_SUBAGENT",
+                                "job_id": "${job_id}",
+                                "parent_agent_id": "${agent_id}",
+                                "status": "INITIALIZING",
+                                "created_at": "${current_timestamp}"
+                            }
+                        },
+                        "outputVariable": "import_dynamo_create"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateAgentInstance",
+                        "description": "Update import agent status to running",
+                        "parameters": {
+                            "agent_id": "${import_agent_invocation.agent_id}",
+                            "status": "RUNNING"
+                        },
+                        "outputVariable": "import_agent_update"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "GetJob",
+                        "description": "Get job details in import agent",
+                        "parameters": {
+                            "job_id": "${job_id}"
+                        },
+                        "outputVariable": "import_job_details"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateJob",
+                        "description": "Update job with import context",
+                        "parameters": {
+                            "job_id": "${job_id}",
+                            "context": {
+                                "current_step": "file_import"
+                            }
+                        },
+                        "outputVariable": "import_job_update"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "CreateHitlTask",
+                        "description": "Create HITL task for file import",
+                        "parameters": {
+                            "job_id": "${job_id}",
+                            "task_type": "FILE_IMPORT",
+                            "task_details": {
+                                "instructions": "Please upload your data file for QT assessment"
+                            }
+                        },
+                        "outputVariable": "file_import_hitl_task"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "StartHitlTask",
+                        "description": "Start the file import HITL task",
+                        "parameters": {
+                            "task_id": "${file_import_hitl_task.task_id}"
+                        },
+                        "outputVariable": "start_file_import_result"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateDynamoDBItem",
+                        "description": "Update DynamoDB state for Import SubAgent",
+                        "parameters": {
+                            "table_name": "AgentMetadata",
+                            "key": {
+                                "agent_id": "${import_agent_invocation.agent_id}"
+                            },
+                            "update_expression": "SET #status = :status, #hitlTaskId = :hitlTaskId, #expression_attribute_names = :expression_attribute_names",
+                            "expression_attribute_values": {
+                                ":status": "WAITING_FOR_HITL",
+                                ":hitlTaskId": "${file_import_hitl_task.task_id}",
+                                ":expression_attribute_names": {
+                                    "#status": "status",
+                                    "#hitlTaskId": "hitlTaskId"
+                                }
+                            }
+                        },
+                        "outputVariable": "import_dynamo_update"
+                    }
+                ]
+            },
+            {
+                "type": "wait_for_event",
+                "description": "Wait for file upload HITL completion",
+                "eventSource": "hitl_service",
+                "eventType": "task_completed",
+                "entityId": "${file_import_hitl_task.task_id}",
+                "timeout": 86400,
+                "outputVariable": "hitl_notification",
+                "onTimeout": {
+                    "type": "tool_call",
+                    "toolName": "UpdateJob",
+                    "description": "Update job status to indicate timeout",
+                    "parameters": {
+                        "job_id": "${job_id}",
+                        "status": "ERROR",
+                        "context": {
+                            "error": "File import HITL task timed out"
+                        }
+                    },
+                    "outputVariable": "timeout_update_result"
+                }
+            },
+            {
+                "type": "branch",
+                "description": "Decision branch after file upload",
+                "condition": {
+                    "type": "comparison",
+                    "left": "${hitl_notification.status}",
+                    "operator": "==",
+                    "right": "COMPLETED"
+                },
+                "ifTrue": {
+                    "type": "sequence",
+                    "steps": [
+                        {
+                            "type": "tool_call",
+                            "toolName": "GetDynamoDBItem",
+                            "description": "Get Import SubAgent metadata from DynamoDB",
+                            "parameters": {
+                                "table_name": "AgentMetadata",
+                                "key": {
+                                    "agent_id": "${import_agent_invocation.agent_id}"
+                                }
+                            },
+                            "outputVariable": "import_agent_metadata"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "CloseHitlTask",
+                            "description": "Close the file import HITL task",
+                            "parameters": {
+                                "task_id": "${file_import_hitl_task.task_id}"
+                            },
+                            "outputVariable": "close_hitl_result"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "CreateArtifactDownloadUrl",
+                            "description": "Get download URL for uploaded file",
+                            "parameters": {
+                                "artifact_id": "${hitl_notification.artifact_id}"
+                            },
+                            "outputVariable": "file_download_url"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "ParseImportFile",
+                            "description": "Parse the imported file",
+                            "parameters": {
+                                "file_url": "${file_download_url.url}"
+                            },
+                            "outputVariable": "parsed_file_data"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "StoreS3TableData",
+                            "description": "Store parsed data in S3 Tables",
+                            "parameters": {
+                                "job_id": "${job_id}",
+                                "data": "${parsed_file_data}"
+                            },
+                            "outputVariable": "store_data_result"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "CreateHitlTask",
+                            "description": "Create HITL task for import findings review",
+                            "parameters": {
+                                "job_id": "${job_id}",
+                                "task_type": "IMPORT_FINDINGS",
+                                "task_details": {
+                                    "instructions": "Please review the imported data",
+                                    "parsed_data_summary": "${parsed_file_data.summary}"
+                                }
+                            },
+                            "outputVariable": "findings_hitl_task"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "StartHitlTask",
+                            "description": "Start the import findings HITL task",
+                            "parameters": {
+                                "task_id": "${findings_hitl_task.task_id}"
+                            },
+                            "outputVariable": "start_findings_hitl_result"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "UpdateDynamoDBItem",
+                            "description": "Update DynamoDB state for Import SubAgent",
+                            "parameters": {
+                                "table_name": "AgentMetadata",
+                                "key": {
+                                    "agent_id": "${import_agent_invocation.agent_id}"
+                                },
+                                "update_expression": "SET #status = :status, #hitlTaskId = :hitlTaskId, #lastUpdated = :lastUpdated, #expression_attribute_names = :expression_attribute_names",
+                                "expression_attribute_values": {
+                                    ":status": "WAITING_FOR_FINDINGS_REVIEW",
+                                    ":hitlTaskId": "${findings_hitl_task.task_id}",
+                                    ":lastUpdated": "${current_timestamp}",
+                                    ":expression_attribute_names": {
+                                        "#status": "status",
+                                        "#hitlTaskId": "hitlTaskId",
+                                        "#lastUpdated": "lastUpdated"
+                                    }
+                                }
+                            },
+                            "outputVariable": "findings_dynamo_update"
+                        }
+                    ]
+                },
+                "ifFalse": {
+                    "type": "sequence",
+                    "steps": [
+                        {
+                            "type": "tool_call",
+                            "toolName": "UpdateJob",
+                            "description": "Update job status to indicate error",
+                            "parameters": {
+                                "job_id": "${job_id}",
+                                "status": "ERROR",
+                                "context": {
+                                    "error": "File import HITL task failed"
+                                }
+                            },
+                            "outputVariable": "error_update_result"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "UpdateDynamoDBItem",
+                            "description": "Update DynamoDB state for error",
+                            "parameters": {
+                                "table_name": "AgentMetadata",
+                                "key": {
+                                    "agent_id": "${import_agent_invocation.agent_id}"
+                                },
+                                "update_expression": "SET #status = :status, #error = :error, #lastUpdated = :lastUpdated, #expression_attribute_names = :expression_attribute_names",
+                                "expression_attribute_values": {
+                                    ":status": "ERROR",
+                                    ":error": "File import HITL task failed",
+                                    ":lastUpdated": "${current_timestamp}",
+                                    ":expression_attribute_names": {
+                                        "#status": "status",
+                                        "#error": "error",
+                                        "#lastUpdated": "lastUpdated"
+                                    }
+                                }
+                            },
+                            "outputVariable": "error_dynamo_update"
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "wait_for_event",
+                "description": "Wait for findings review HITL completion",
+                "eventSource": "hitl_service",
+                "eventType": "task_completed",
+                "entityId": "${findings_hitl_task.task_id}",
+                "timeout": 86400,
+                "outputVariable": "findings_hitl_notification"
+            },
+            {
+                "type": "loop",
+                "description": "Customer review loop for imported data",
+                "condition": {
+                    "type": "comparison",
+                    "left": "${findings_hitl_notification.decision}",
+                    "operator": "!=",
+                    "right": "CONTINUE_TO_ASSESSMENT"
+                },
+                "body": {
+                    "type": "sequence",
+                    "steps": [
+                        {
+                            "type": "tool_call",
+                            "toolName": "CloseHitlTask",
+                            "description": "Close the current findings HITL task",
+                            "parameters": {
+                                "task_id": "${findings_hitl_task.task_id}"
+                            },
+                            "outputVariable": "close_findings_hitl_result"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "CreateHitlTask",
+                            "description": "Create new HITL task for file import",
+                            "parameters": {
+                                "job_id": "${job_id}",
+                                "task_type": "FILE_IMPORT",
+                                "task_details": {
+                                    "instructions": "Please upload a new data file for QT assessment"
+                                }
+                            },
+                            "outputVariable": "new_file_import_hitl_task"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "StartHitlTask",
+                            "description": "Start the new file import HITL task",
+                            "parameters": {
+                                "task_id": "${new_file_import_hitl_task.task_id}"
+                            },
+                            "outputVariable": "start_new_file_import_result"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "UpdateDynamoDBItem",
+                            "description": "Update DynamoDB state for new file import",
+                            "parameters": {
+                                "table_name": "AgentMetadata",
+                                "key": {
+                                    "agent_id": "${import_agent_invocation.agent_id}"
+                                },
+                                "update_expression": "SET #status = :status, #hitlTaskId = :hitlTaskId",
+                                "expression_attribute_values": {
+                                    ":status": "WAITING_FOR_NEW_FILE",
+                                    ":hitlTaskId": "${new_file_import_hitl_task.task_id}"
+                                }
+                            },
+                            "outputVariable": "new_file_dynamo_update"
+                        },
+                        {
+                            "type": "wait_for_event",
+                            "description": "Wait for new file upload HITL completion",
+                            "eventSource": "hitl_service",
+                            "eventType": "task_completed",
+                            "entityId": "${new_file_import_hitl_task.task_id}",
+                            "timeout": 86400,
+                            "outputVariable": "new_hitl_notification"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "CreateArtifactDownloadUrl",
+                            "description": "Get download URL for newly uploaded file",
+                            "parameters": {
+                                "artifact_id": "${new_hitl_notification.artifact_id}"
+                            },
+                            "outputVariable": "new_file_download_url"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "ParseImportFile",
+                            "description": "Parse the newly imported file",
+                            "parameters": {
+                                "file_url": "${new_file_download_url.url}"
+                            },
+                            "outputVariable": "new_parsed_file_data"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "StoreS3TableData",
+                            "description": "Store new parsed data in S3 Tables",
+                            "parameters": {
+                                "job_id": "${job_id}",
+                                "data": "${new_parsed_file_data}"
+                            },
+                            "outputVariable": "new_store_data_result"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "CreateHitlTask",
+                            "description": "Create HITL task for new import findings review",
+                            "parameters": {
+                                "job_id": "${job_id}",
+                                "task_type": "IMPORT_FINDINGS",
+                                "task_details": {
+                                    "instructions": "Please review the newly imported data",
+                                    "parsed_data_summary": "${new_parsed_file_data.summary}"
+                                }
+                            },
+                            "outputVariable": "findings_hitl_task"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "StartHitlTask",
+                            "description": "Start the new import findings HITL task",
+                            "parameters": {
+                                "task_id": "${findings_hitl_task.task_id}"
+                            },
+                            "outputVariable": "start_findings_hitl_result"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "UpdateDynamoDBItem",
+                            "description": "Update DynamoDB state for new findings review",
+                            "parameters": {
+                                "table_name": "AgentMetadata",
+                                "key": {
+                                    "agent_id": "${import_agent_invocation.agent_id}"
+                                },
+                                "update_expression": "SET #status = :status, #hitlTaskId = :hitlTaskId",
+                                "expression_attribute_values": {
+                                    ":status": "WAITING_FOR_FINDINGS_REVIEW",
+                                    ":hitlTaskId": "${findings_hitl_task.task_id}"
+                                }
+                            },
+                            "outputVariable": "new_findings_dynamo_update"
+                        },
+                        {
+                            "type": "wait_for_event",
+                            "description": "Wait for new findings review HITL completion",
+                            "eventSource": "hitl_service",
+                            "eventType": "task_completed",
+                            "entityId": "${findings_hitl_task.task_id}",
+                            "timeout": 86400,
+                            "outputVariable": "findings_hitl_notification"
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "sequence",
+                "description": "Import SubAgent completion",
+                "steps": [
+                    {
+                        "type": "tool_call",
+                        "toolName": "CloseHitlTask",
+                        "description": "Close the findings HITL task",
+                        "parameters": {
+                            "task_id": "${findings_hitl_task.task_id}"
+                        },
+                        "outputVariable": "close_final_findings_hitl_result"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateJob",
+                        "description": "Update job status after import completion",
+                        "parameters": {
+                            "job_id": "${job_id}",
+                            "context": {
+                                "current_step": "import_completed"
+                            }
+                        },
+                        "outputVariable": "import_completion_update"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateAgentInstance",
+                        "description": "Mark Import SubAgent as completed",
+                        "parameters": {
+                            "agent_id": "${import_agent_invocation.agent_id}",
+                            "status": "COMPLETED"
+                        },
+                        "outputVariable": "import_agent_completion"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateDynamoDBItem",
+                        "description": "Update DynamoDB state for Import SubAgent completion",
+                        "parameters": {
+                            "table_name": "AgentMetadata",
+                            "key": {
+                                "agent_id": "${import_agent_invocation.agent_id}"
+                            },
+                            "update_expression": "SET #status = :status",
+                            "expression_attribute_values": {
+                                ":status": "COMPLETED"
+                            }
+                        },
+                        "outputVariable": "import_completion_dynamo_update"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "NotifyAgent",
+                        "description": "Notify Orchestration Agent of Import SubAgent completion",
+                        "parameters": {
+                            "agent_id": "${agent_id}",
+                            "notification_type": "SUBAGENT_COMPLETED",
+                            "notification_data": {
+                                "subagent_id": "${import_agent_invocation.agent_id}",
+                                "subagent_type": "IMPORT_SUBAGENT",
+                                "job_id": "${job_id}"
+                            }
+                        },
+                        "outputVariable": "notify_orchestrator_result"
+                    }
+                ]
+            },
+            {
+                "type": "sequence",
+                "description": "Assessment SubAgent processing",
+                "steps": [
+                    {
+                        "type": "tool_call",
+                        "toolName": "GetDynamoDBItem",
+                        "description": "Get Orchestration Agent metadata before invoking Assessment SubAgent",
+                        "parameters": {
+                            "table_name": "AgentMetadata",
+                            "key": {
+                                "agent_id": "${agent_id}"
+                            }
+                        },
+                        "outputVariable": "orchestrator_metadata_before_assessment"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "InvokeAgent",
+                        "description": "Invoke Assessment SubAgent",
+                        "parameters": {
+                            "agent_type": "ASSESS_SUBAGENT",
+                            "job_id": "${job_id}",
+                            "context": {
+                                "parent_agent_id": "${agent_id}"
+                            }
+                        },
+                        "outputVariable": "assess_agent_invocation"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "CreateDynamoDBItem",
+                        "description": "Create DynamoDB item for Assess SubAgent",
+                        "parameters": {
+                            "table_name": "AgentMetadata",
+                            "item": {
+                                "agent_id": "${assess_agent_invocation.agent_id}",
+                                "agent_type": "ASSESS_SUBAGENT",
+                                "job_id": "${job_id}",
+                                "parent_agent_id": "${agent_id}",
+                                "status": "INITIALIZING",
+                                "created_at": "${current_timestamp}"
+                            }
+                        },
+                        "outputVariable": "assess_dynamo_create"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateAgentInstance",
+                        "description": "Update assessment agent status to running",
+                        "parameters": {
+                            "agent_id": "${assess_agent_invocation.agent_id}",
+                            "status": "RUNNING"
+                        },
+                        "outputVariable": "assess_agent_update"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "GetJob",
+                        "description": "Get job details in assessment agent",
+                        "parameters": {
+                            "job_id": "${job_id}"
+                        },
+                        "outputVariable": "assess_job_details"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateJob",
+                        "description": "Update job with assessment context",
+                        "parameters": {
+                            "job_id": "${job_id}",
+                            "context": {
+                                "current_step": "assessment"
+                            }
+                        },
+                        "outputVariable": "assess_job_update"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "RetrieveS3TableData",
+                        "description": "Retrieve data from S3 Tables for assessment",
+                        "parameters": {
+                            "job_id": "${job_id}"
+                        },
+                        "outputVariable": "assessment_input_data"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "GenerateAssessmentReport",
+                        "description": "Generate assessment report",
+                        "parameters": {
+                            "job_id": "${job_id}",
+                            "input_data": "${assessment_input_data}"
+                        },
+                        "outputVariable": "assessment_report"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "CreateArtifactUploadUrl",
+                        "description": "Get URL to upload assessment report",
+                        "parameters": {
+                            "job_id": "${job_id}",
+                            "artifact_type": "ASSESSMENT_REPORT",
+                            "content_type": "application/pdf"
+                        },
+                        "outputVariable": "report_upload_url"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "CreateHitlTask",
+                        "description": "Create HITL task for assessment report review",
+                        "parameters": {
+                            "job_id": "${job_id}",
+                            "task_type": "ASSESSMENT_REPORT",
+                            "task_details": {
+                                "instructions": "Please review the assessment report",
+                                "report_url": "${report_upload_url.url}",
+                                "report_summary": "${assessment_report.summary}"
+                            }
+                        },
+                        "outputVariable": "report_hitl_task"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "StartHitlTask",
+                        "description": "Start the assessment report HITL task",
+                        "parameters": {
+                            "task_id": "${report_hitl_task.task_id}"
+                        },
+                        "outputVariable": "start_report_hitl_result"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateDynamoDBItem",
+                        "description": "Update DynamoDB state for Assessment SubAgent",
+                        "parameters": {
+                            "table_name": "AgentMetadata",
+                            "key": {
+                                "agent_id": "${assess_agent_invocation.agent_id}"
+                            },
+                            "update_expression": "SET #status = :status, #hitlTaskId = :hitlTaskId, #lastUpdated = :lastUpdated, #expression_attribute_names = :expression_attribute_names",
+                            "expression_attribute_values": {
+                                ":status": "WAITING_FOR_REPORT_REVIEW",
+                                ":hitlTaskId": "${report_hitl_task.task_id}",
+                                ":lastUpdated": "${current_timestamp}",
+                                ":expression_attribute_names": {
+                                    "#status": "status",
+                                    "#hitlTaskId": "hitlTaskId",
+                                    "#lastUpdated": "lastUpdated"
+                                }
+                            }
+                        },
+                        "outputVariable": "assess_hitl_dynamo_update"
+                    }
+                ]
+            },
+            {
+                "type": "wait_for_event",
+                "description": "Wait for assessment report review HITL completion",
+                "eventSource": "hitl_service",
+                "eventType": "task_completed",
+                "entityId": "${report_hitl_task.task_id}",
+                "timeout": 86400,
+                "outputVariable": "report_hitl_notification"
+            },
+            {
+                "type": "sequence",
+                "description": "Final completion steps",
+                "steps": [
+                    {
+                        "type": "tool_call",
+                        "toolName": "GetDynamoDBItem",
+                        "description": "Get Assessment SubAgent metadata before completion",
+                        "parameters": {
+                            "table_name": "AgentMetadata",
+                            "key": {
+                                "agent_id": "${assess_agent_invocation.agent_id}"
+                            }
+                        },
+                        "outputVariable": "assess_agent_metadata_before_completion"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "CloseHitlTask",
+                        "description": "Close the report HITL task",
+                        "parameters": {
+                            "task_id": "${report_hitl_task.task_id}"
+                        },
+                        "outputVariable": "close_report_hitl_result"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateAgentInstance",
+                        "description": "Mark Assessment SubAgent as completed",
+                        "parameters": {
+                            "agent_id": "${assess_agent_invocation.agent_id}",
+                            "status": "COMPLETED"
+                        },
+                        "outputVariable": "assess_agent_completion"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateDynamoDBItem",
+                        "description": "Update DynamoDB state for Assessment SubAgent completion",
+                        "parameters": {
+                            "table_name": "AgentMetadata",
+                            "key": {
+                                "agent_id": "${assess_agent_invocation.agent_id}"
+                            },
+                            "update_expression": "SET #status = :status, #lastUpdated = :lastUpdated, #expression_attribute_names = :expression_attribute_names",
+                            "expression_attribute_values": {
+                                ":status": "COMPLETED",
+                                ":lastUpdated": "${current_timestamp}",
+                                ":expression_attribute_names": {
+                                    "#status": "status",
+                                    "#lastUpdated": "lastUpdated"
+                                }
+                            }
+                        },
+                        "outputVariable": "assess_completion_dynamo_update"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "NotifyAgent",
+                        "description": "Notify Orchestration Agent of Assessment SubAgent completion",
+                        "parameters": {
+                            "agent_id": "${agent_id}",
+                            "notification_type": "SUBAGENT_COMPLETED",
+                            "notification_data": {
+                                "subagent_id": "${assess_agent_invocation.agent_id}",
+                                "subagent_type": "ASSESS_SUBAGENT",
+                                "job_id": "${job_id}"
+                            }
+                        },
+                        "outputVariable": "notify_orchestrator_assess_result"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "GetDynamoDBItem",
+                        "description": "Get Orchestration Agent metadata before final update",
+                        "parameters": {
+                            "table_name": "AgentMetadata",
+                            "key": {
+                                "agent_id": "${agent_id}"
+                            }
+                        },
+                        "outputVariable": "orchestrator_metadata_before_completion"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateJob",
+                        "description": "Mark job as completed",
+                        "parameters": {
+                            "job_id": "${job_id}",
+                            "status": "COMPLETED",
+                            "context": {
+                                "current_step": "completed"
+                            }
+                        },
+                        "outputVariable": "job_completion_update"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateAgentInstance",
+                        "description": "Mark Orchestration Agent as completed",
+                        "parameters": {
+                            "agent_id": "${agent_id}",
+                            "status": "COMPLETED"
+                        },
+                        "outputVariable": "orchestrator_completion"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "UpdateDynamoDBItem",
+                        "description": "Update final DynamoDB state for Orchestration Agent",
+                        "parameters": {
+                            "table_name": "AgentMetadata",
+                            "key": {
+                                "agent_id": "${agent_id}"
+                            },
+                            "update_expression": "SET #status = :status, #lastUpdated = :lastUpdated, #completedAt = :completedAt, #expression_attribute_names = :expression_attribute_names",
+                            "expression_attribute_values": {
+                                ":status": "COMPLETED",
+                                ":lastUpdated": "${current_timestamp}",
+                                ":completedAt": "${current_timestamp}",
+                                ":expression_attribute_names": {
+                                    "#status": "status",
+                                    "#lastUpdated": "lastUpdated",
+                                    "#completedAt": "completedAt"
+                                }
+                            }
+                        },
+                        "outputVariable": "final_dynamo_update"
+                    }
+                ]
+            }
+        ]
+    }
+}

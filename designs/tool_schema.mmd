@@ -1,0 +1,61 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ADD8E6', 'primaryTextColor': '#000', 'primaryBorderColor': '#7FB3D5', 'lineColor': '#7FB3D5', 'secondaryColor': '#E8F4F8', 'tertiaryColor': '#fff'}}}%%
+
+flowchart TD    
+    %% Tool Definition Section
+    subgraph ToolSection ["🔧 Tool Functionality Schema"]
+        ToolDef["🛠️ <b>ToolDefinition</b>
+        • name: string
+        • description: string
+        • resource: string (ARN)
+        • parameters: Parameter[]
+        • return: ReturnValue"]
+        
+        Param["📊 <b>Parameter</b>
+        • name: string
+        • type: string
+        • description: string
+        • required: boolean
+        • default_value: any
+        • constraints: Constraints"]
+        
+        Return["📤 <b>Return</b>
+        • type: string
+        • description: string
+        • schema: object"]
+    end
+    
+    %% Constraints and Types Section
+    subgraph ValidationSection ["✅ Validation & Types"]
+        Constraints["🔒 <b>Constraints</b>
+        • min: number
+        • max: number
+        • pattern: string
+        • enum: any[]"]
+        
+        DataTypes["📋 <b>DataType</b>
+        • string
+        • number
+        • boolean
+        • object"]
+    end
+    
+    %% Relationships
+    ToolDef -->|may have parameters| Param
+    ToolDef -->|may have return| Return
+    Param -->|may have| Constraints
+    Param -->|uses type| DataTypes
+    Return -->|uses type| DataTypes
+    
+    %% Styling
+    classDef plannerStyle fill:#E8F4F8,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef toolStyle fill:#ADD8E6,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef validationStyle fill:#B8E6B8,stroke:#7FB3D5,stroke-width:2px,color:#000
+    
+    %% Apply styles
+    class Planner plannerStyle
+    class ToolDef,Param,Return toolStyle
+    class Constraints,DataTypes validationStyle
+    
+    %% Subgraph styling
+    style ToolSection fill:#F0F8FF,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style ValidationSection fill:#F5FFF5,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5

@@ -1,0 +1,200 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ADD8E6', 'primaryTextColor': '#000', 'primaryBorderColor': '#7FB3D5', 'lineColor': '#7FB3D5', 'secondaryColor': '#E8F4F8', 'tertiaryColor': '#fff'}}}%%
+
+flowchart TD
+    
+    %% SequenceContainer Translation
+    subgraph SequenceTranslation ["SequenceContainer Translation"]
+        SeqInput["➤ <b>SequenceContainer</b>
+        • type: sequence
+        • steps: [step1, step2, step3]"]
+        
+        SeqASL["💻 <b>Amazon State Language</b> <div align='left'>
+          'StartAt': 'step1',
+          'States': {
+          &nbsp;  'step1': { ..., 'Next': 'step2' },
+          &nbsp;  'step2': { ..., 'Next': 'step3' },
+          &nbsp;  'step3': { ..., 'End': true }
+          }</div>"]
+        
+        SeqCode["🐍 <b>Python/Java Code</b> <div align='left'>
+        for step in sequence.steps:
+        &nbsp;  result = execute_step(step)
+        &nbsp;  context.update(result) </div>"]
+    end
+
+    %% ParallelContainer Translation
+    subgraph ParallelTranslation ["ParallelContainer Translation"]
+        ParInput["⫸ <b>ParallelContainer</b>
+        • type: parallel
+        • branches: [branch1, branch2, branch3]"]
+        
+        ParASL["💻 <b>Amazon State Language</b> <div align='left'>
+          'Type': 'Parallel',
+          'Branches': [
+            { 'StartAt': 'Branch1', ... },
+            { 'StartAt': 'Branch2', ... },
+            { 'StartAt': 'Branch3', ... }
+          ]</div>"]
+        
+        ParCode["🐍 <b>Python/Java Code</b> <div align='left'>
+        import ThreadPoolExecutor
+        with ThreadPoolExecutor() as executor:
+        &nbsp; results = list(executor.map(execute_branch, parallel.branches))</div>"]
+    end
+    
+    %% Branch Node Translation
+    subgraph BranchTranslation ["Branch Node Translation"]
+        BranchInput["🔀 <b>Branch Node</b>
+        • condition: variable == 'value'
+        • ifTrue: trueStep
+        • ifFalse: falseStep"]
+        
+        BranchASL["💻 <b>Amazon State Language</b> <div align='left'>
+          'Type': 'Choice',
+          'Choices': [{
+          &nbsp;  'Condition': '{% $variable = 'value' %}' ,
+          &nbsp;  'Next': 'trueStep'
+          }],
+          'Default': 'falseStep'</div>"]
+        
+        BranchCode["🐍 <b>Python/Java Code</b> <div align='left'>
+        if evaluate_condition(condition, context):
+        &nbsp;  result = execute_node(ifTrue, context)
+        else:
+        &nbsp;  result = execute_node(ifFalse, context) </div>"]
+    end
+    
+    %% Loop Node Translation
+    subgraph LoopTranslation ["Loop Node Translation"]
+        LoopInput["🔁 <b>Loop Node</b>
+        • condition: counter < 10
+        • body: loopBody
+        • iterationVariable: counter"]
+        
+        LoopASL["💻 <b>Amazon State Language</b> <div align='left'>
+          'Type': 'Choice',
+          'Choices': [{
+          &nbsp;  'Condition': '{% $counter < 10 %}',
+          &nbsp;  'Next': 'LoopBody_start'
+          }],
+          'Default': 'Loop_pass'</div>"]
+        
+        LoopCode["🐍 <b>Python/Java Code</b> <div align='left'>
+        while evaluate_condition(
+            loop.condition, context):
+            &nbsp; result = execute_node(
+            &nbsp;    loop.body, context)
+            &nbsp; context[loop.iterationVariable] += 1
+            &nbsp; context.update(result)</div>"]
+    end
+    
+    %% ToolCall Node Translation
+    subgraph ToolCallTranslation ["ToolCall Node Translation"]
+        ToolInput["🛠️ <b>ToolCall Node</b>
+        • toolName: 'calculateSum'
+        • parameters: {a: 5, b: 3}
+        • outputVariable: 'sumResult'"]
+        
+        ToolASL["💻 <b>Amazon State Language</b> <div align='left'>
+          'Type': 'Task',
+          'Resource': 'arn:aws:lambda:...',
+          'Arguments':
+          &nbsp;  'a': 5,
+          &nbsp;  'b': 3
+          'Assign':
+          &nbsp; 'sumResult': '{% $states.result %}' </div>"]
+        
+        ToolCode["🐍 <b>Python/Java Code</b> <div align='left'>
+        tool = get_tool(toolCall['toolName'])
+        result = tool.execute(toolCall['parameters'])
+        context[toolCall['outputVariable']] = result </div>"]
+    end
+    
+    %% WaitForEvent Node Translation
+    subgraph WaitTranslation ["WaitForEvent Node Translation"]
+        WaitInput["⏰ <b>WaitForEvent Node</b>
+        • eventSource: 'user-approval'
+        • entityId: 'request-123'
+        • onTimeout: timeoutHandler"]
+        
+        WaitASL["💻 <b>Amazon State Language</b> <div align='left'>
+          'Type': 'Wait',
+          'Seconds': 360,
+          'Next': 'CheckEvent',
+          'Catch': [{
+          &nbsp;  'ErrorEquals': ['States.ALL'],
+          &nbsp;  'Next': 'timeoutHandler'
+          }]</div>"]
+        
+        WaitCode["🐍 <b>Python/Java Code</b> <div align='left'>
+        event = wait_for_event(waitEvent.eventSource, waitEvent.entityId, timeout=360)
+        if event is None:
+        &nbsp;  result = execute_node(waitEvent.onTimeout, context)
+        else:
+        &nbsp;  context['event'] = event </div>"]
+    end
+    
+    %% UserInput Node Translation
+    subgraph UserInputTranslation ["UserInput Node Translation"]
+        UserInput["👤 <b>User_input</b>
+        • prompt: 'Enter your name'
+        • inputType: 'text'
+        • outputVariable: 'userName'"]
+        
+        UserASL["💻 <b>Amazon State Language</b>
+        <div align='left'>
+          'Type': 'Task',
+          'Resource': 'arn:aws:states:...',
+          'Arguments': {
+            'prompt': 'Enter your name',
+            'inputType': 'text'
+          },
+          'Assign': {'userName': '{% $states.result %}'}
+        </div>"]
+        
+        UserCode["🐍 <b>Python/Java Code</b><div align='left'>
+        user_input = prompt_user(userInput['prompt'], userInput['inputType'])
+        context[userInput['outputVariable']] = user_input
+        </div>"]
+    end
+    
+    %% Relationships showing translation flow
+    SeqInput --> SeqASL
+    SeqInput --> SeqCode
+    
+    ParInput --> ParASL
+    ParInput --> ParCode
+    
+    BranchInput --> BranchASL
+    BranchInput --> BranchCode
+    
+    LoopInput --> LoopASL
+    LoopInput --> LoopCode
+    
+    ToolInput --> ToolASL
+    ToolInput --> ToolCode
+    
+    WaitInput --> WaitASL
+    WaitInput --> WaitCode
+    
+    UserInput --> UserASL
+    UserInput --> UserCode
+    
+    %% Styling
+    classDef inputStyle fill:#E8F4F8,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef aslStyle fill:#FFE4B5,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef codeStyle fill:#B8E6B8,stroke:#7FB3D5,stroke-width:2px,color:#000
+    
+    %% Apply styles
+    class SeqInput,ParInput,BranchInput,LoopInput,ToolInput,WaitInput,UserInput inputStyle
+    class SeqASL,ParASL,BranchASL,LoopASL,ToolASL,WaitASL,UserASL aslStyle
+    class SeqCode,ParCode,BranchCode,LoopCode,ToolCode,WaitCode,UserCode codeStyle
+    
+    %% Subgraph styling
+    style SequenceTranslation fill:#F8FCFF,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style ParallelTranslation fill:#F8FCFF,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style BranchTranslation fill:#F8FCFF,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style LoopTranslation fill:#F8FCFF,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style ToolCallTranslation fill:#F8FCFF,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style WaitTranslation fill:#F8FCFF,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style UserInputTranslation fill:#F8FCFF,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5

@@ -1,0 +1,73 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ADD8E6', 'primaryTextColor': '#000', 'primaryBorderColor': '#7FB3D5', 'lineColor': '#7FB3D5', 'secondaryColor': '#E8F4F8', 'tertiaryColor': '#fff'}, 'themeCSS': '.cluster-label { font-size: 16px !important; font-weight: bold !important; text-anchor: start !important; }'}}%%
+
+flowchart TD
+    %% Entry Points
+    StartGen(["<b>🎯 Generate_plan()</b>
+    • description
+    • avialable tools"]) --> GenPrep
+    StartRef(["<b>🤔 Reflect_plan()</b>
+    • current plan
+    • feedback"]) --> RefPrep
+    
+    %% Generation Path - Preparation
+    subgraph GenPrep ["Gen System Prompt"]
+        PrepareGen["
+        • Analyze description complexity
+        - single / logical sections
+        • Overall generation principles"]
+
+    end
+    
+    %% Reflection Path - Preparation  
+    subgraph RefPrep ["Ref System Prompt"]
+        PrepareRef["
+        • Analyze feedback complexity
+        - single / logical sections
+        • Overall reflection principles"]
+    end
+    
+    %% Iterative Planning Engine - Redesigned
+    subgraph IterEngine ["LLM in a Loop"]
+        LLMAnalysis["🤖 LLM with <b>workflow_exec_tool</b> using defined workflow <b>input_schema</b>"]
+        
+        WorkflowValidator["🔍 <b>Workflow Validation</b>
+        • Tool_call parameters
+        • Variable reference flow
+        • Nested container structure"]
+        
+        WorkflowCombinator["🧩 <b>Workflow Combination</b>
+        • Combine sections sequentially
+        • Add concise description"]
+        
+        LLMAnalysis -->|"tool_use with 
+        workflow input"| WorkflowValidator
+        WorkflowValidator -->|"Detailed error message
+        with correction guidance"| LLMAnalysis
+        LLMAnalysis -->|"end_turn with 
+        concise summary"| WorkflowCombinator
+    end
+    
+    %% Flow Connections - Generation Path
+    GenPrep --> IterEngine 
+    RefPrep --> IterEngine
+
+    
+    %% Styling
+    classDef entryStyle fill:#DDA0DD,stroke:#7FB3D5,stroke-width:3px,color:#000
+    classDef prepStyle fill:#E8F4F8,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef engineStyle fill:#ADD8E6,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef processStyle fill:#B8E6B8,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef decisionStyle fill:#FFE4B5,stroke:#7FB3D5,stroke-width:2px,color:#000
+    classDef outputStyle fill:#DDA0DD,stroke:#7FB3D5,stroke-width:3px,color:#000
+    classDef completionStyle fill:#98FB98,stroke:#7FB3D5,stroke-width:2px,color:#000
+    
+    %% Apply Styles
+    class StartGen,StartRef entryStyle
+    class PrepareGen,PrepareRef,WorkflowCombinator prepStyle
+    class LLMAnalysis engineStyle
+    class WorkflowValidator, processStyle
+    
+    %% Subgraph Styling
+    style GenPrep fill:#F8FCFF,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style RefPrep fill:#F0F8FF,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5
+    style IterEngine fill:#F5FFF5,stroke:#7FB3D5,stroke-width:2px,color:#000,stroke-dasharray: 5 5

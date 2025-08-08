@@ -1,0 +1,243 @@
+{
+    "name": "Data Backup System",
+    "description": "Backs up recently modified text files with a manifest and optional compression",
+    "root": {
+        "type": "sequence",
+        "steps": [
+            {
+                "type": "tool_call",
+                "toolName": "list_directory",
+                "parameters": {
+                    "path": ".",
+                    "pattern": "*.txt"
+                },
+                "outputVariable": "txt_files"
+            },
+            {
+                "type": "tool_call",
+                "toolName": "check_file_exists",
+                "parameters": {
+                    "path": "backup"
+                },
+                "outputVariable": "backup_exists"
+            },
+            {
+                "type": "branch",
+                "condition": {
+                    "type": "comparison",
+                    "left": "${backup_exists}",
+                    "operator": "==",
+                    "right": "false"
+                },
+                "ifTrue": {
+                    "type": "tool_call",
+                    "toolName": "create_directory",
+                    "parameters": {
+                        "path": "backup"
+                    },
+                    "outputVariable": "create_result"
+                },
+                "ifFalse": {
+                    "type": "tool_call",
+                    "toolName": "execute_command",
+                    "parameters": {
+                        "command": "echo \"Backup directory already exists\""
+                    },
+                    "outputVariable": "echo_result"
+                }
+            },
+            {
+                "type": "tool_call",
+                "toolName": "execute_command",
+                "parameters": {
+                    "command": "date +%Y%m%d%H%M%S"
+                },
+                "outputVariable": "timestamp"
+            },
+            {
+                "type": "tool_call",
+                "toolName": "write_file",
+                "parameters": {
+                    "path": "backup/manifest.json",
+                    "content": "{ \"files\": [] }"
+                },
+                "outputVariable": "manifest_init"
+            },
+            {
+                "type": "tool_call",
+                "toolName": "execute_command",
+                "parameters": {
+                    "command": "echo 0"
+                },
+                "outputVariable": "backup_count"
+            },
+            {
+                "type": "loop",
+                "iterationVariable": "i",
+                "condition": {
+                    "type": "comparison",
+                    "left": "${i}",
+                    "operator": "<",
+                    "right": "${txt_files.length}"
+                },
+                "body": {
+                    "type": "sequence",
+                    "steps": [
+                        {
+                            "type": "tool_call",
+                            "toolName": "execute_command",
+                            "parameters": {
+                                "command": "stat -c %Y \"${txt_files[i]}\" 2>/dev/null || echo 0"
+                            },
+                            "outputVariable": "file_mtime"
+                        },
+                        {
+                            "type": "tool_call",
+                            "toolName": "execute_command",
+                            "parameters": {
+                                "command": "echo $(($(date +%s) - 86400))"
+                            },
+                            "outputVariable": "day_ago"
+                        },
+                        {
+                            "type": "branch",
+                            "condition": {
+                                "type": "comparison",
+                                "left": "${file_mtime}",
+                                "operator": ">",
+                                "right": "${day_ago}"
+                            },
+                            "ifTrue": {
+                                "type": "sequence",
+                                "steps": [
+                                    {
+                                        "type": "tool_call",
+                                        "toolName": "read_file",
+                                        "parameters": {
+                                            "path": "${txt_files[i]}"
+                                        },
+                                        "outputVariable": "file_content"
+                                    },
+                                    {
+                                        "type": "tool_call",
+                                        "toolName": "write_file",
+                                        "parameters": {
+                                            "path": "backup/${txt_files[i]}.${timestamp}",
+                                            "content": "${file_content}"
+                                        },
+                                        "outputVariable": "backup_result"
+                                    },
+                                    {
+                                        "type": "tool_call",
+                                        "toolName": "read_file",
+                                        "parameters": {
+                                            "path": "backup/manifest.json"
+                                        },
+                                        "outputVariable": "manifest_content"
+                                    },
+                                    {
+                                        "type": "tool_call",
+                                        "toolName": "parse_json",
+                                        "parameters": {
+                                            "json": "${manifest_content}"
+                                        },
+                                        "outputVariable": "parsed_manifest"
+                                    },
+                                    {
+                                        "type": "tool_call",
+                                        "toolName": "update_json",
+                                        "parameters": {
+                                            "object": "${parsed_manifest}",
+                                            "path": "files",
+                                            "operation": "append",
+                                            "value": {
+                                                "original": "${txt_files[i]}",
+                                                "backup": "${txt_files[i]}.${timestamp}",
+                                                "modified": "${file_mtime}"
+                                            }
+                                        },
+                                        "outputVariable": "updated_manifest"
+                                    },
+                                    {
+                                        "type": "tool_call",
+                                        "toolName": "write_file",
+                                        "parameters": {
+                                            "path": "backup/manifest.json",
+                                            "content": "${updated_manifest}"
+                                        },
+                                        "outputVariable": "manifest_update"
+                                    },
+                                    {
+                                        "type": "tool_call",
+                                        "toolName": "execute_command",
+                                        "parameters": {
+                                            "command": "echo $((${backup_count} + 1))"
+                                        },
+                                        "outputVariable": "backup_count"
+                                    }
+                                ]
+                            },
+                            "ifFalse": {
+                                "type": "tool_call",
+                                "toolName": "execute_command",
+                                "parameters": {
+                                    "command": "echo \"Skipping ${txt_files[i]} - not recently modified\""
+                                },
+                                "outputVariable": "skip_message"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "sequence",
+                "steps": [
+                    {
+                        "type": "parallel",
+                        "branches": [
+                            {
+                                "type": "tool_call",
+                                "toolName": "http_request",
+                                "parameters": {
+                                    "url": "https://example.com",
+                                    "method": "GET"
+                                },
+                                "outputVariable": "example_response"
+                            },
+                            {
+                                "type": "tool_call",
+                                "toolName": "http_request",
+                                "parameters": {
+                                    "url": "https://httpbin.org/get",
+                                    "method": "GET"
+                                },
+                                "outputVariable": "httpbin_response"
+                            },
+                            {
+                                "type": "tool_call",
+                                "toolName": "http_request",
+                                "parameters": {
+                                    "url": "https://jsonplaceholder.typicode.com/todos/1",
+                                    "method": "GET"
+                                },
+                                "outputVariable": "jsonplaceholder_response"
+                            }
+                        ],
+                        "maxConcurrency": 3,
+                        "aggregateResults": true,
+                        "aggregateVariable": "all_responses"
+                    },
+                    {
+                        "type": "tool_call",
+                        "toolName": "write_file",
+                        "parameters": {
+                            "path": "api_results.json",
+                            "data": "${all_responses}"
+                        },
+                        "outputVariable": "write_result"
+                    }
+                ]
+            }
+        ]
+    }
+}

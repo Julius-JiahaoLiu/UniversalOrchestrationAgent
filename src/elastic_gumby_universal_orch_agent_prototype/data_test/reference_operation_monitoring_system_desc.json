@@ -1,0 +1,3 @@
+{
+    "workflow_description": "Take a ticket ID as input and manage the entire analysis process. Execute specialized agents and pass relevant context between them:\n - First, use TicketParserAgent to extract structured data from the incident ticket.\n - Next, use IssueClassifierAgent to categorize the issue based on the ticket data\n - Then, use these two sub-agents in parallel, including ServiceAttributionAgent to identify affected AWS services, CloudWatchAgent to analyze logs from the identified AWS account and region.\n - Use CodeAnalyzerAgent to search and analyze relevant code repositories\n - Use RootCauseAnalyzerAgent to synthesize all previous return data and determine root cause\n Finally, use ReportGeneratorAgent to create a comprehensive RCA report."
+}

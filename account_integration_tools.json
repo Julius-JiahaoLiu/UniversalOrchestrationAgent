@@ -1,0 +1,185 @@
+{
+    "available_tools": [
+    {
+        "name": "AESEventQueue",
+        "description": "Receives account events from AES SNS topic and triggers AESEventHandler Lambda for processing, if Lambda returns false then put event in DLQ",
+        "resource": "arn:aws:sqs:us-east-1:968945269428:Alpha-queue-sqs",
+        "parameters": [
+            {
+                "name": "AccountId",
+                "type": "string",
+                "description": "The account ID associated with the event"
+            },
+            {
+                "name": "Timestamp",
+                "type": "string",
+                "description": "The time the account event occurred"
+            },
+            {
+                "name": "EventId",
+                "type": "string",
+                "description": "The event ID"
+            }
+        ]
+    },
+    {
+        "name": "AESEventDLQ",
+        "description": "Receives failed account events and stores them for later analysis",
+        "resource": "arn:aws:sqs:us-east-1:968945269428:Alpha-queue-dlq",
+        "parameters": [
+            {
+                "name": "AccountId",
+                "type": "string",
+                "description": "The account ID associated with the event"
+            },
+            {
+                "name": "Timestamp",
+                "type": "string",
+                "description": "The time the account event occurred"
+            },
+            {
+                "name": "EventId",
+                "type": "string",
+                "description": "The event ID"
+            }
+        ]
+    },
+    {
+        "name": "AESEventHandler",
+        "description": "Processes account events received from AESEventQueue",
+        "resource": "arn:aws:lambda:us-east-1:968945269428:function:AESEventHandler-Alpha",
+        "parameters": [
+            {
+                "name": "AccountId",
+                "type": "string",
+                "description": "The account ID associated with the event"
+            },
+            {
+                "name": "Timestamp",
+                "type": "string",
+                "description": "The time the account event occurred"
+            },
+            {
+                "name": "EventId",
+                "type": "string",
+                "description": "The event ID"
+            }
+        ],
+        "return": {
+            "type": "boolean",
+            "description": "Whether the event was successfully handled"
+        }
+    },
+    {
+        "name": "AccountStatusTable_Read",
+        "description": "Reads the current status of accounts",
+        "resource": "arn:aws:dynamodb:us-east-1:968945269428:table/AccountStatusTable",
+        "parameters": [
+            {
+                "name": "AccountId",
+                "type": "string",
+                "description": "The account ID to read the status for"
+            }
+        ],
+        "return": {
+            "type": "string",
+            "description": "The current status of the account"
+        }
+    },
+    {
+        "name": "AccountStatusTable_Write",
+        "description": "Writes the current status of accounts",
+        "resource": "arn:aws:dynamodb:us-east-1:968945269428:table/AccountStatusTable",
+        "parameters": [
+            {
+                "name": "AccountId",
+                "type": "string",
+                "description": "The account ID to write the status for"
+            },
+            {
+                "name": "Status",
+                "type": "string",
+                "description": "The new status of the account"
+            }
+        ]
+    },
+    {
+        "name": "TransformControlPlane_ListProfilesByAccountId",
+        "description": "Lists all user profiles in the system",
+        "parameters": [
+            {
+                "name": "AccountId",
+                "type": "string",
+                "description": "The account ID to list profiles for"
+            }
+        ],
+        "return": {
+            "type": "array",
+            "description": "A list of user profiles"
+        }
+    },
+    {
+        "name": "TransformControlPlane_CleanupProfile",
+        "description": "Cleans up user profiles in the system",
+        "resource": "",
+        "parameters": [
+            {
+                "name": "ProfileArn",
+                "type": "string",
+                "description": "The ARN of the profile to clean up"
+            }
+        ]
+    },
+    {
+        "name": "AccountEventsService_VerifyAccountEvent",
+        "description": "Verifies account events",
+        "parameters": [
+            {
+                "name": "AccountId",
+                "type": "string",
+                "description": "The account ID associated with the event"
+            },
+            {
+                "name": "Timestamp",
+                "type": "string",
+                "description": "The time the account event occurred"
+            },
+            {
+                "name": "EventId",
+                "type": "string",
+                "description": "The event ID"
+            }
+        ],
+        "return": {
+            "type": "string",
+            "description": "The type of the account event, or EXPIRED if the event is no longer valid"
+        }
+    },
+    {
+        "name": "AccountEventsService_AcknowledgeAccountEvent",
+        "description": "Acknowledges account events with response code",
+        "parameters": [
+            {
+                "name": "AccountId",
+                "type": "string",
+                "description": "The account ID associated with the event"
+            },
+            {
+                "name": "Timestamp",
+                "type": "string",
+                "description": "The time the account event occurred"
+            },
+            {
+                "name": "EventId",
+                "type": "string",
+                "description": "The event ID"
+            },
+            {
+                "name": "ResponseCode",
+                "type": "string",
+                "description": "The response code for the acknowledgment"
+            }
+        ]
+    }
+    ]
+}

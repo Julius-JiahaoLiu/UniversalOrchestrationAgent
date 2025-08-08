@@ -1,0 +1,184 @@
+[
+  {
+    "name": "UpdateAgentInstance",
+    "description": "Updates the status of an agent instance in the platform",
+    "category": "platform_api",
+    "parameters": [
+      {
+        "name": "agent_id",
+        "type": "string",
+        "description": "ID of the agent instance to update"
+      },
+      {
+        "name": "status",
+        "type": "string",
+        "description": "New status of the agent (e.g., 'RUNNING', 'COMPLETED', 'FAILED')"
+      }
+    ],
+    "returns": {
+      "name": "result",
+      "type": "object",
+      "description": "Result of the update operation"
+    }
+  },
+  {
+    "name": "InvokeAgent",
+    "description": "Invokes another agent in the platform",
+    "category": "platform_api",
+    "parameters": [
+      {
+        "name": "agent_type",
+        "type": "string",
+        "description": "Type of agent to invoke"
+      },
+      {
+        "name": "job_id",
+        "type": "string",
+        "description": "ID of the job"
+      },
+      {
+        "name": "context",
+        "type": "object",
+        "description": "Context information for the agent",
+        "required": false
+      }
+    ],
+    "returns": {
+      "name": "result",
+      "type": "object",
+      "description": "Result of the agent invocation"
+    }
+  },
+  {
+    "name": "CreateHitlTask",
+    "description": "Creates a human-in-the-loop task in the platform",
+    "category": "platform_api",
+    "parameters": [
+      {
+        "name": "job_id",
+        "type": "string",
+        "description": "ID of the job"
+      },
+      {
+        "name": "task_type",
+        "type": "string",
+        "description": "Type of HITL task (e.g., 'FILE_IMPORT', 'IMPORT_FINDINGS', 'ASSESSMENT_REPORT')"
+      },
+      {
+        "name": "task_details",
+        "type": "object",
+        "description": "Details for the HITL task"
+      }
+    ],
+    "returns": {
+      "name": "task",
+      "type": "object",
+      "description": "Created HITL task information"
+    }
+  },
+  {
+    "name": "CloseHitlTask",
+    "description": "Closes a HITL task",
+    "category": "platform_api",
+    "parameters": [
+      {
+        "name": "task_id",
+        "type": "string",
+        "description": "ID of the HITL task to close"
+      }
+    ],
+    "returns": {
+      "name": "result",
+      "type": "object",
+      "description": "Result of closing the HITL task"
+    }
+  },
+  {
+    "name": "StoreS3TableData",
+    "description": "Stores parsed data in S3 Tables",
+    "category": "data_operations",
+    "parameters": [
+      {
+        "name": "job_id",
+        "type": "string",
+        "description": "ID of the job"
+      },
+      {
+        "name": "data",
+        "type": "object",
+        "description": "Data to store in S3 Tables"
+      }
+    ],
+    "returns": {
+      "name": "result",
+      "type": "object",
+      "description": "Result of the storage operation"
+    }
+  },
+  {
+    "name": "RetrieveS3TableData",
+    "description": "Retrieves data from S3 Tables",
+    "category": "data_operations",
+    "parameters": [
+      {
+        "name": "job_id",
+        "type": "string",
+        "description": "ID of the job"
+      }
+    ],
+    "returns": {
+      "name": "data",
+      "type": "object",
+      "description": "Retrieved data from S3 Tables"
+    }
+  },
+  {
+    "name": "CreateDynamoDBItem",
+    "description": "Creates a new item in DynamoDB",
+    "category": "database",
+    "parameters": [
+      {
+        "name": "table_name",
+        "type": "string",
+        "description": "Name of the DynamoDB table"
+      },
+      {
+        "name": "item",
+        "type": "object",
+        "description": "Item data to store in DynamoDB"
+      }
+    ],
+    "returns": {
+      "name": "result",
+      "type": "object",
+      "description": "Result of the create operation"
+    }
+  },
+  {
+    "name": "NotifyAgent",
+    "description": "Notifies an agent about an event or status change",
+    "category": "platform_api",
+    "parameters": [
+      {
+        "name": "agent_id",
+        "type": "string",
+        "description": "ID of the agent to notify"
+      },
+      {
+        "name": "notification_type",
+        "type": "string",
+        "description": "Type of notification"
+      },
+      {
+        "name": "notification_data",
+        "type": "object",
+        "description": "Data associated with the notification"
+      }
+    ],
+    "returns": {
+      "name": "result",
+      "type": "object",
+      "description": "Result of the notification operation"
+    }
+  }
+]

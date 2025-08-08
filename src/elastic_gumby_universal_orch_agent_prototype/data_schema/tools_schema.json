@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Workflow Orchestration Tool Input Schema",
+  "description": "Schema for defining available tools input for workflow orchestration",
+  "type": "object",
+  "required": ["available_tools"],
+  "properties": {
+    "available_tools": {
+      "type": "array",
+      "description": "List of available tools that can be used in the workflow",
+      "items": {
+        "$ref": "#/definitions/ToolDefinition"
+      }
+    }
+  },
+  "definitions": {
+    "ToolDefinition": {
+      "type": "object",
+      "required": ["name", "description", "resource", "parameters", "return"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the tool"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of what the tool does"
+        },
+        "resource": {
+          "type": "string",
+          "description": "Amazon Resource Name for the tool resource"
+        },
+        "parameters": {
+          "type": "array",
+          "description": "List of parameters accepted by the tool",
+          "items": {
+            "$ref": "#/definitions/Parameter"
+          }
+        },
+        "return": {
+          "$ref": "#/definitions/ReturnValue",
+          "description": "Information about the return value of the tool"
+        }
+      }
+    },
+    "Parameter": {
+      "type": "object",
+      "required": ["name", "type", "description"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the parameter"
+        },
+        "type": {
+          "type": "string",
+          "description": "Data type of the parameter (e.g., string, number, boolean, object, array)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the parameter and its purpose"
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether the parameter is required or optional",
+          "default": true
+        },
+        "default_value": {
+          "description": "Default value for the parameter if not provided",
+          "type": ["string", "number", "boolean", "object", "array", "null"]
+        },
+        "constraints": {
+          "type": "object",
+          "description": "Optional constraints on the parameter values",
+          "properties": {
+            "min": {
+              "type": "number",
+              "description": "Minimum value for numeric parameters"
+            },
+            "max": {
+              "type": "number",
+              "description": "Maximum value for numeric parameters"
+            },
+            "pattern": {
+              "type": "string",
+              "description": "Regex pattern for string parameters"
+            },
+            "enum": {
+              "type": "array",
+              "description": "List of allowed values"
+            }
+          }
+        }
+      }
+    },
+    "ReturnValue": {
+      "type": "object",
+      "required": ["type", "description"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Data type of the return value (e.g., string, number, boolean, object, array)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the return value and its purpose"
+        },
+        "schema": {
+          "type": "object",
+          "description": "Optional JSON schema defining the structure of complex return types"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,403 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Amazon States Language Schema (specialize in JSONata, reference: https://states-language.net/spec.html)",
+  "$ref": "#/definitions/StateMachine",
+  "definitions": {
+    "StateMachine": {
+      "type": "object",
+      "required": ["States", "StartAt", "QueryLanguage"],
+      "properties": {
+        "States": {
+          "type": "object",
+          "patternProperties": {
+            "^[A-Za-z0-9-_]+$": {
+              "oneOf": [
+                { "$ref": "#/definitions/TaskState" },
+                { "$ref": "#/definitions/ChoiceState" },
+                { "$ref": "#/definitions/ParallelState" },
+                { "$ref": "#/definitions/MapState" },
+                { "$ref": "#/definitions/WaitState" },
+                { "$ref": "#/definitions/Pass" },
+                { "$ref": "#/definitions/SucceedState" },
+                { "$ref": "#/definitions/FailState" }
+              ]
+            }
+          }
+        },
+        "StartAt": {
+          "type": "string",
+          "description": "Name of the starting state"
+        },
+        "QueryLanguage": {
+          "type": "string",
+          "const": "JSONata",
+          "description": "Use JSONata as Query language in this schema"
+        },
+        "Comment": {
+          "type": "string",
+          "description": "Human-readable description"
+        },
+        "Version": {
+          "type": "string",
+          "default": "1.0",
+          "description": "Version of the States Language"
+        },
+        "TimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of seconds the machine is allowed to execute"
+        }
+      }
+    },
+    "TaskState": {
+      "type": "object",
+      "oneOf": [
+        {"required": ["Type", "Resource", "Arguments", "Assign", "End"]},
+        {"required": ["Type", "Resource", "Arguments", "Assign", "Next"]}
+      ],
+      "properties": {
+        "Type": {
+          "const": "Task"
+        },
+        "Comment": {
+          "type": "string",
+          "description": "Human-readable description of the task"
+        },
+        "Resource": {
+          "type": "string",
+          "description": "URI of the task to execute"
+        },
+        "Arguments": {
+          "type": "object",
+          "description": "Input arguments for the task as a JSON object. Field values and array items can contain JSONata expressions using {% %} syntax that will be evaluated before passing to the resource function"
+        },
+        "Output": {
+          "type": "string",
+          "description": "JSONata expression using {% %} syntax that evaluates to the state output. May reference $states.input, $states.context, and $states.result"
+        },
+        "Assign": {
+          "$ref": "#/definitions/Assign"
+        },
+        "Next": {
+          "type": "string",
+          "description": "Name of the next state"
+        },
+        "End": {
+          "type": "boolean",
+          "const": true,
+          "description": "Indicates this is a terminal state"
+        },
+        "Retry": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Retrier"
+          },
+          "description": "Array of retry configurations for error handling"
+        },
+        "Catch": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Catcher"
+          },
+          "description": "Array of catch configurations for error handling"
+        }
+      }
+    },
+    "ChoiceState": {
+      "type": "object",
+      "required": ["Type", "Choices"],
+      "properties": {
+        "Type": {
+          "const": "Choice"
+        },
+        "Choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ChoiceRule"
+          },
+          "minItems": 1
+        },
+        "Default": {
+          "type": "string",
+          "description": "Default state if no choice rules match"
+        }
+      }
+    },
+    "ChoiceRule": {
+      "type": "object",
+      "required": ["Condition", "Next"],
+      "properties": {
+        "Condition": {
+          "$ref": "#/definitions/JSONataExpression",
+          "description": "JSONata boolean expression for the choice condition"
+        },
+        "Next": {
+          "type": "string",
+          "description": "Next state if condition is true"
+        }
+      }
+    },
+    "ParallelState": {
+      "type": "object",
+      "oneOf": [
+        {"required": ["Type", "Branches", "End"]},
+        {"required": ["Type", "Branches", "Next"]}
+      ],
+      "properties": {
+        "Type": {
+          "const": "Parallel"
+        },
+        "Comment": {
+          "type": "string",
+          "description": "Human-readable description of the task"
+        },
+        "Branches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StateMachine"
+          },
+          "minItems": 1,
+          "description": "Array of state machines to execute in parallel"
+        },
+        "Assign": {"$ref": "#/definitions/Assign"},
+        "Output": {
+          "type": "string",
+          "description": "JSONata expression using {% %} syntax that evaluates to the state output. May reference $states.input, $states.context, and $states.result"
+        },
+        "Next": {
+          "type": "string",
+          "description": "Name of the next state"
+        },
+        "End": {
+          "type": "boolean",
+          "const": true,
+          "description": "Indicates this is a terminal state"
+        },
+        "Retry": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Retrier"
+          },
+          "description": "Array of retry configurations for error handling"
+        },
+        "Catch": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Catcher"
+          },
+          "description": "Array of catch configurations for error handling"
+        }
+      }
+    },
+    "MapState": {
+      "type": "object",
+      "oneOf": [
+        {"required": ["Type", "ItemProcessor", "Items", "End"]},
+        {"required": ["Type", "ItemProcessor", "Items", "Next"]}
+      ],
+      "properties": {
+        "Type": {
+          "const": "Map"
+        },
+        "Comment": {
+          "type": "string",
+          "description": "Human-readable description of the task"
+        },
+        "ItemProcessor": {
+          "$ref": "#/definitions/StateMachine",
+          "description": "State machine to process each item"
+        },
+        "Items": {
+          "$ref": "#/definitions/JSONataExpression",
+          "description": "JSONata expression that returns array of items to process"
+        },
+        "Assign": {
+          "$ref": "#/definitions/Assign"
+        },
+        "Output": {
+          "type": "string",
+          "description": "JSONata expression using {% %} syntax that evaluates to the state output. May reference $states.input, $states.context, and $states.result"
+        },
+        "Next": {
+          "type": "string",
+          "description": "Name of the next state"
+        },
+        "End": {
+          "type": "boolean",
+          "const": true,
+          "description": "Indicates this is a terminal state"
+        },
+        "Retry": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Retrier"
+          },
+          "description": "Array of retry configurations for error handling"
+        },
+        "Catch": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Catcher"
+          },
+          "description": "Array of catch configurations for error handling"
+        }
+      }
+    },
+    "WaitState": {
+      "type": "object",
+      "required": ["Type", "Seconds", "Next"],
+      "properties": {
+        "Type": {
+          "const": "Wait"
+        },
+        "Comment": {
+          "type": "string",
+          "description": "Human-readable description of the task"
+        },
+        "Seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of seconds to wait"
+        },
+        "Assign": {
+          "$ref": "#/definitions/Assign"
+        },
+        "Next": {
+          "type": "string",
+          "description": "Next state if condition is true"
+        }
+      }
+    },
+    "Pass": {
+      "type": "object",
+      "oenOf": [
+        {"required": ["Type", "End"]},
+        {"required": ["Type", "Next"]}
+      ],
+      "properties": {
+        "Type": {
+          "const": "Pass"
+        },
+        "Comment": {
+          "type": "string",
+          "description": "Human-readable description of the task"
+        },
+        "Next": {
+          "type": "string",
+          "description": "Name of the next state"
+        },
+        "End": {
+          "type": "boolean",
+          "const": true,
+          "description": "Indicates this is a terminal state"
+        }
+      }
+    },
+    "SucceedState": {
+      "type": "object",
+      "description": "Terminates a state machine successfully, ends a branch of a Parallel State, or ends an iteration of a Map State.",
+      "required": ["Type"],
+      "properties": {
+        "Type": {
+          "const": "Succeed"
+        },
+        "Comment": {
+          "type": "string",
+          "description": "Human-readable description of the task"
+        },
+        "Output": {
+          "type": "string",
+          "description": "JSONata expression using {% %} syntax that evaluates to the state output. May reference $states.input and $states.context"
+        }
+      }
+    },
+    "FailState": {
+      "type": "object",
+      "required": ["Type"],
+      "properties": {
+        "Type": {
+          "const": "Fail"
+        },
+        "Comment": {
+          "type": "string",
+          "description": "Human-readable description of the task"
+        },
+        "Error": {
+          "$ref": "#/definitions/JSONataExpression",
+          "description": "JSONata expression for error. When evaluated, MUST be string values."
+        },
+        "Cause": {
+          "$ref": "#/definitions/JSONataExpression",
+          "description": "JSON"
+        }
+      }
+    },
+    "JSONataExpression": {
+      "type": "string",
+      "description": "JSONata expression. Can reference variables with $ prefix (e.g. $variableName), access state input with $states.input, state result with $states.result, error output with $states.errorOutput, and context with $states.context"
+    },
+    "Assign": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Object containing variable assignments. Each field name is a variable name, and its value is the value to assign to that variable."
+    },
+    "Retrier": {
+      "type": "object",
+      "required": ["ErrorEquals"],
+      "properties": {
+        "ErrorEquals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ErrorName"
+          },
+          "minItems": 1,
+          "description": "Array of error names to match"
+        },
+        "MaxAttempts": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 3,
+          "description": "Maximum number of retry attempts"
+        },
+        "MaxDelaySeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum delay between retries"
+        }
+      }
+    },
+    "Catcher": {
+      "type": "object",
+      "required": ["ErrorEquals", "Next"],
+      "properties": {
+        "ErrorEquals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ErrorName"
+          },
+          "minItems": 1,
+          "description": "Array of error names to catch"
+        },
+        "Next": {
+          "type": "string",
+          "description": "State to transition to when error is caught"
+        },
+        "Comment": {
+          "type": "string"
+        },
+        "Assign": {
+          "$ref": "#/definitions/Assign"
+        }
+      }
+    },
+    "ErrorName": {
+      "type": "string",
+      "enum": [
+        "States.ALL",
+        "States.TaskFailed",
+        "States.Permissions"
+      ],
+      "description": "Predefined error names for error handling"
+    }
+  }
+}

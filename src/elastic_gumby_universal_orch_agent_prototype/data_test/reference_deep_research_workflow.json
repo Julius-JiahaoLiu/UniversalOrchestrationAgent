@@ -1,0 +1,272 @@
+{
+  "name": "Deep Research Agent Workflow",
+  "description": "A systematic multi-stage process for conducting deep research on a topic, including planning, information gathering, content creation, and refinement.",
+  "root": {
+    "type": "sequence",
+    "name": "Combined Workflow Execution",
+    "description": "Sequential execution of all workflow sections",
+    "steps": [
+      {
+        "type": "sequence",
+        "steps": [
+          {
+            "type": "user_input",
+            "description": "Collect the research topic from the user",
+            "prompt": "Please enter the research topic you'd like to investigate:",
+            "inputType": "text",
+            "outputVariable": "research_topic"
+          },
+          {
+            "type": "tool_call",
+            "description": "Generate a comprehensive research plan for the given topic",
+            "toolName": "ResearchPlanGenerator",
+            "parameters": {
+              "research_topic": "{% $research_topic %}"
+            },
+            "outputVariable": "research_plan"
+          },
+          {
+            "type": "tool_call",
+            "description": "Initialize the Planner with empty current state and research plan",
+            "toolName": "Planner",
+            "parameters": {
+              "current_state": "Initial state: Research has not yet begun.",
+              "research_plan": "{% $research_plan %}"
+            },
+            "outputVariable": "next_action"
+          }
+        ],
+        "description": "Initialize the research process by collecting the topic, generating a research plan, and determining the first action"
+      },
+      {
+        "type": "sequence",
+        "description": "Main research orchestration workflow",
+        "steps": [
+          {
+            "type": "tool_call",
+            "description": "Initialize search results with an empty array",
+            "toolName": "Searcher",
+            "parameters": {
+              "search_query": "initialization",
+              "search_number": 1,
+              "source": "external_webpages"
+            },
+            "outputVariable": "search_results"
+          },
+          {
+            "type": "user_input",
+            "description": "Get the research plan from the user (output from section 1)",
+            "prompt": "Enter or paste the research plan generated in section 1:",
+            "inputType": "text",
+            "outputVariable": "research_plan"
+          },
+          {
+            "type": "user_input",
+            "description": "Get the current state of the research to initialize Planner",
+            "prompt": "Describe the current state of your research (or 'Initial' if just starting):",
+            "inputType": "text",
+            "outputVariable": "current_state"
+          },
+          {
+            "type": "tool_call",
+            "description": "Use the Planner to determine the first action based on research plan",
+            "toolName": "Planner",
+            "parameters": {
+              "current_state": "{% $current_state %}",
+              "research_plan": "{% $research_plan %}"
+            },
+            "outputVariable": "next_action"
+          },
+          {
+            "type": "loop",
+            "description": "Main orchestration loop that continues until the research is complete",
+            "condition": {
+              "type": "comparison",
+              "left": "{% $next_action %}",
+              "operator": "!=",
+              "right": "RESEARCH_COMPLETE"
+            },
+            "body": {
+              "type": "branch",
+              "description": "Route to the appropriate action based on the Planner's decision",
+              "condition": {
+                "type": "comparison",
+                "left": "{% $next_action %}",
+                "operator": "=",
+                "right": "SEARCH"
+              },
+              "ifTrue": {
+                "type": "sequence",
+                "description": "Information Gathering workflow",
+                "steps": [
+                  {
+                    "type": "user_input",
+                    "description": "Get search parameters from the user",
+                    "prompt": "Enter search query:",
+                    "inputType": "text",
+                    "outputVariable": "search_query"
+                  },
+                  {
+                    "type": "user_input",
+                    "description": "Get number of search results to retrieve",
+                    "prompt": "Enter number of results to retrieve:",
+                    "inputType": "number",
+                    "outputVariable": "search_number"
+                  },
+                  {
+                    "type": "user_input",
+                    "description": "Get source to search from",
+                    "prompt": "Select source to search from:",
+                    "inputType": "selection",
+                    "options": [
+                      "external_webpages",
+                      "internal_documents",
+                      "knowledge_base"
+                    ],
+                    "outputVariable": "search_source"
+                  },
+                  {
+                    "type": "tool_call",
+                    "description": "Search for information using the Searcher tool",
+                    "toolName": "Searcher",
+                    "parameters": {
+                      "search_query": "{% $search_query %}",
+                      "search_number": "{% $search_number %}",
+                      "source": "{% $search_source %}"
+                    },
+                    "outputVariable": "search_results"
+                  },
+                  {
+                    "type": "tool_call",
+                    "description": "Use the Planner to determine the next action based on search results",
+                    "toolName": "Planner",
+                    "parameters": {
+                      "current_state": "{% \"Information gathered via search. Query: \" & $search_query & \". Results stored in cache.\" %}",
+                      "research_plan": "{% $research_plan %}"
+                    },
+                    "outputVariable": "next_action"
+                  }
+                ]
+              },
+              "ifFalse": {
+                "type": "branch",
+                "description": "Check if the next action is WRITE",
+                "condition": {
+                  "type": "comparison",
+                  "left": "{% $next_action %}",
+                  "operator": "=",
+                  "right": "WRITE"
+                },
+                "ifTrue": {
+                  "type": "sequence",
+                  "description": "Section Creation workflow",
+                  "steps": [
+                    {
+                      "type": "user_input",
+                      "description": "Get section name from the user",
+                      "prompt": "Enter the name for the new section:",
+                      "inputType": "text",
+                      "outputVariable": "section_name"
+                    },
+                    {
+                      "type": "user_input",
+                      "description": "Get writing goal from the user",
+                      "prompt": "Describe the writing goal for this section:",
+                      "inputType": "text",
+                      "outputVariable": "writing_goal"
+                    },
+                    {
+                      "type": "tool_call",
+                      "description": "Create a new section using the Writer tool",
+                      "toolName": "Writer",
+                      "parameters": {
+                        "section_name": "{% $section_name %}",
+                        "writing_goal": "{% $writing_goal %}",
+                        "documents": "{% $search_results %}"
+                      },
+                      "outputVariable": "new_section"
+                    },
+                    {
+                      "type": "tool_call",
+                      "description": "Use the Planner to determine the next action after writing a section",
+                      "toolName": "Planner",
+                      "parameters": {
+                        "current_state": "{% \"New section created: \" & $section_name & \". Content has been added to the article.\" %}",
+                        "research_plan": "{% $research_plan %}"
+                      },
+                      "outputVariable": "next_action"
+                    }
+                  ]
+                },
+                "ifFalse": {
+                  "type": "branch",
+                  "description": "Check if the next action is EDIT",
+                  "condition": {
+                    "type": "comparison",
+                    "left": "{% $next_action %}",
+                    "operator": "=",
+                    "right": "EDIT"
+                  },
+                  "ifTrue": {
+                    "type": "sequence",
+                    "description": "Section Refinement workflow",
+                    "steps": [
+                      {
+                        "type": "user_input",
+                        "description": "Get section name to edit from the user",
+                        "prompt": "Enter the name of the section to edit:",
+                        "inputType": "text",
+                        "outputVariable": "edit_section_name"
+                      },
+                      {
+                        "type": "user_input",
+                        "description": "Get edit goal from the user",
+                        "prompt": "Describe the edit goal for this section:",
+                        "inputType": "text",
+                        "outputVariable": "edit_goal"
+                      },
+                      {
+                        "type": "tool_call",
+                        "description": "Edit an existing section using the Editor tool",
+                        "toolName": "Editor",
+                        "parameters": {
+                          "section_name": "{% $edit_section_name %}",
+                          "edit_goal": "{% $edit_goal %}",
+                          "documents": "{% $search_results %}"
+                        },
+                        "outputVariable": "edited_section"
+                      },
+                      {
+                        "type": "tool_call",
+                        "description": "Use the Planner to determine the next action after editing a section",
+                        "toolName": "Planner",
+                        "parameters": {
+                          "current_state": "{% \"Section edited: \" & $edit_section_name & \". Content has been updated in the article.\" %}",
+                          "research_plan": "{% $research_plan %}"
+                        },
+                        "outputVariable": "next_action"
+                      }
+                    ]
+                  },
+                  "ifFalse": {
+                    "type": "user_input",
+                    "description": "Handle unknown or invalid action from the Planner",
+                    "prompt": "Unexpected action from the Planner. Please specify what to do next:",
+                    "inputType": "selection",
+                    "options": [
+                      "SEARCH",
+                      "WRITE",
+                      "EDIT",
+                      "RESEARCH_COMPLETE"
+                    ],
+                    "outputVariable": "next_action"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,232 @@
+{
+  "name": "Deep Research Agent Workflow",
+  "description": "A systematic multi-stage research process that includes planning, information gathering, content creation, and refinement to produce comprehensive research articles.",
+  "root": {
+    "type": "sequence",
+    "description": "Complete research workflow from planning to execution",
+    "steps": [
+      {
+        "type": "user_input",
+        "description": "Get research topic from user",
+        "prompt": "Please enter the research topic or question you'd like to investigate:",
+        "inputType": "text",
+        "outputVariable": "research_topic"
+      },
+      {
+        "type": "tool_call",
+        "description": "Generate comprehensive research plan",
+        "toolName": "ResearchPlanGenerator",
+        "parameters": {
+          "research_topic": "{% $research_topic %}"
+        },
+        "outputVariable": "research_plan"
+      },
+      {
+        "type": "tool_call",
+        "description": "Initialize the research process with the Planner",
+        "toolName": "Planner",
+        "parameters": {
+          "current_state": "Initial state. No research has been done yet. Article is empty.",
+          "research_plan": "{% $research_plan %}"
+        },
+        "outputVariable": "next_action"
+      },
+      {
+        "type": "tool_call",
+        "description": "Initialize empty document cache",
+        "toolName": "Searcher",
+        "parameters": {
+          "search_query": "initialization query",
+          "search_number": 1,
+          "source": "external_webpages"
+        },
+        "outputVariable": "document_cache"
+      },
+      {
+        "type": "loop",
+        "description": "Orchestration loop that continues until research is complete",
+        "condition": {
+          "type": "comparison",
+          "left": "{% $next_action %}",
+          "operator": "!=",
+          "right": "finish"
+        },
+        "body": {
+          "type": "branch",
+          "description": "Branch based on the Planner's decision on next action",
+          "condition": {
+            "type": "comparison",
+            "left": "{% $next_action %}",
+            "operator": "=",
+            "right": "search"
+          },
+          "ifTrue": {
+            "type": "sequence",
+            "description": "Execute search operation",
+            "steps": [
+              {
+                "type": "user_input",
+                "description": "Get search parameters from user",
+                "prompt": "Enter search query:",
+                "inputType": "text",
+                "outputVariable": "search_query"
+              },
+              {
+                "type": "user_input",
+                "description": "Select search source",
+                "prompt": "Select the information source to query:",
+                "inputType": "selection",
+                "options": [
+                  "external_webpages",
+                  "internal_documents",
+                  "knowledge_base"
+                ],
+                "outputVariable": "search_source"
+              },
+              {
+                "type": "user_input",
+                "description": "Enter number of results",
+                "prompt": "Enter the number of search results to retrieve:",
+                "inputType": "number",
+                "outputVariable": "search_number"
+              },
+              {
+                "type": "tool_call",
+                "description": "Perform search operation using the Searcher tool",
+                "toolName": "Searcher",
+                "parameters": {
+                  "search_query": "{% $search_query %}",
+                  "search_number": "{% $search_number %}",
+                  "source": "{% $search_source %}"
+                },
+                "outputVariable": "search_results"
+              },
+              {
+                "type": "tool_call",
+                "description": "Update Planner with new search results",
+                "toolName": "Planner",
+                "parameters": {
+                  "current_state": "Search completed. New information retrieved from the source.",
+                  "research_plan": "{% $research_plan %}"
+                },
+                "outputVariable": "next_action"
+              }
+            ]
+          },
+          "ifFalse": {
+            "type": "branch",
+            "description": "Check if next action is to write a section",
+            "condition": {
+              "type": "comparison",
+              "left": "{% $next_action %}",
+              "operator": "=",
+              "right": "write"
+            },
+            "ifTrue": {
+              "type": "sequence",
+              "description": "Execute write operation",
+              "steps": [
+                {
+                  "type": "user_input",
+                  "description": "Get section name for writing",
+                  "prompt": "Enter the section name/title to be created:",
+                  "inputType": "text",
+                  "outputVariable": "section_name"
+                },
+                {
+                  "type": "user_input",
+                  "description": "Get writing goal",
+                  "prompt": "Enter the detailed instructions for writing this section:",
+                  "inputType": "text",
+                  "outputVariable": "writing_goal"
+                },
+                {
+                  "type": "tool_call",
+                  "description": "Write a new section using the Writer tool",
+                  "toolName": "Writer",
+                  "parameters": {
+                    "section_name": "{% $section_name %}",
+                    "writing_goal": "{% $writing_goal %}",
+                    "documents": "{% $document_cache %}"
+                  },
+                  "outputVariable": "new_section"
+                },
+                {
+                  "type": "tool_call",
+                  "description": "Update Planner with the newly written section",
+                  "toolName": "Planner",
+                  "parameters": {
+                    "current_state": "Section written successfully. Added to the article.",
+                    "research_plan": "{% $research_plan %}"
+                  },
+                  "outputVariable": "next_action"
+                }
+              ]
+            },
+            "ifFalse": {
+              "type": "branch",
+              "description": "Check if next action is to edit a section",
+              "condition": {
+                "type": "comparison",
+                "left": "{% $next_action %}",
+                "operator": "=",
+                "right": "edit"
+              },
+              "ifTrue": {
+                "type": "sequence",
+                "description": "Execute edit operation",
+                "steps": [
+                  {
+                    "type": "user_input",
+                    "description": "Get section name for editing",
+                    "prompt": "Enter the exact name of the section to be edited:",
+                    "inputType": "text",
+                    "outputVariable": "section_name_edit"
+                  },
+                  {
+                    "type": "user_input",
+                    "description": "Get edit goal",
+                    "prompt": "Enter the detailed instructions for editing this section:",
+                    "inputType": "text",
+                    "outputVariable": "edit_goal"
+                  },
+                  {
+                    "type": "tool_call",
+                    "description": "Edit an existing section using the Editor tool",
+                    "toolName": "Editor",
+                    "parameters": {
+                      "section_name": "{% $section_name_edit %}",
+                      "edit_goal": "{% $edit_goal %}",
+                      "documents": "{% $document_cache %}"
+                    },
+                    "outputVariable": "edited_section"
+                  },
+                  {
+                    "type": "tool_call",
+                    "description": "Update Planner with the edited section",
+                    "toolName": "Planner",
+                    "parameters": {
+                      "current_state": "Section edited successfully. Updated in the article.",
+                      "research_plan": "{% $research_plan %}"
+                    },
+                    "outputVariable": "next_action"
+                  }
+                ]
+              },
+              "ifFalse": {
+                "type": "tool_call",
+                "description": "Ask Planner for clarification on next action",
+                "toolName": "Planner",
+                "parameters": {
+                  "current_state": "Previous action unclear. Please provide a valid next action.",
+                  "research_plan": "{% $research_plan %}"
+                },
+                "outputVariable": "next_action"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

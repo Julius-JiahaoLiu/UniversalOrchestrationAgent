@@ -1,0 +1,72 @@
+{
+  "available_tools": [
+      {
+        "name": "start_processing_job",
+        "description": "Starts an asynchronous data processing job",
+        "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+        "parameters": [
+          {
+            "name": "data_source",
+            "type": "string",
+            "description": "Source of the data to process"
+          },
+          {
+            "name": "job_config",
+            "type": "object",
+            "description": "Configuration parameters for the job"
+          }
+        ],
+        "return": {
+          "type": "object",
+          "description": "Details about the started job including job_id"
+        }
+      },
+      {
+        "name": "generate_report",
+        "description": "Generates a report from processed data",
+        "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+        "parameters": [
+          {
+            "name": "job_id",
+            "type": "string",
+            "description": "ID of the completed processing job"
+          },
+          {
+            "name": "report_format",
+            "type": "string",
+            "description": "Format of the report (pdf, html, csv)"
+          }
+        ],
+        "return": {
+          "type": "string",
+          "description": "URL where the generated report can be accessed"
+        }
+      },
+      {
+        "name": "send_notification",
+        "description": "Sends a notification to the user",
+        "resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+        "parameters": [
+          {
+            "name": "user_id",
+            "type": "string",
+            "description": "ID of the user to notify"
+          },
+          {
+            "name": "message",
+            "type": "string",
+            "description": "Message to send to the user"
+          },
+          {
+            "name": "notification_type",
+            "type": "string",
+            "description": "Type of notification (email, sms, push)"
+          }
+        ],
+        "return": {
+          "type": "string",
+          "description": "ID of the sent notification"
+        }
+      }
+    ]
+}

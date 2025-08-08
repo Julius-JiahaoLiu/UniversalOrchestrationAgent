@@ -1,0 +1,161 @@
+{
+	"available_tools": [
+		{
+			"name": "Ticket ParserAgent",
+			"description": "Given a ticket ID: 1. Retrieve the raw ticket content using search_documentation 2. Parse the ticket to extract key information.",
+			"resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+			"parameters": [
+				{
+					"name": "ticketID",
+					"type": "string",
+					"description": "The ID of the ticket to be parsed. This ID is used to retrieve the raw ticket content from the documentation system."
+				}
+			],
+			"return": {
+				"type": "object",
+				"description": "Ticket's key information extracted from the raw content, including Severity level, AWS account IDs, AWS region, Error messages, Affected services, Timeline information, Stakeholders"
+			}
+		},
+        {
+            "name": "Issue Classifier Agent",
+			"description": "categorize and classify incidents based on ticket data",
+			"resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+			"parameters": [
+				{
+					"name": "parsedTicket",
+					"type": "object",
+					"description": "Parsed ticket information containing key details such as severity, AWS account IDs, region, error messages, affected services, timeline, and stakeholders."
+				}
+			],
+			"return": {
+				"type": "object",
+				"description": "Structured classification of the incident including Issue category (e.g., availability, performance, security), Service domain (e.g., compute, storage, networking), Priority level, Impact scope, and Patterns of issue types."
+			}
+        },
+		{
+			"name": "Service Attribution Agent",
+			"description": "Identify AWS services involved in an incident based on ticket and classification data.",
+			"resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+			"parameters": [
+				{
+					"name": "ticketData",
+					"type": "object",
+					"description": "Ticket data containing key information such as severity, AWS account IDs, region, error messages, affected services, timeline, and stakeholders."
+				},
+				{
+					"name": "classificationData",
+					"type": "object",
+					"description": "Classification data containing structured information about the incident including issue category, service domain, priority level, impact scope, and patterns of issue types."
+				}
+			],
+			"return": {
+				"type": "object",
+				"description": "Comprehensive service attribution data that maps the incident to specific AWS services and components, including service names, metadata, documentation URLs, pipeline URLs, package names, dependencies, and relationships."
+			}
+		},
+		{
+			"name": "CloudWatch Agent",
+			"description": "Analyze CloudWatch logs related to an incident.",
+			"resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+			"parameters": [
+				{
+					"name": "awsAccount",
+					"type": "string",
+					"description": "The AWS account ID where the incident occurred."
+				},
+				{
+					"name": "awsRegion",
+					"type": "string",
+					"description": "The AWS region where the incident occurred."
+				},
+				{
+					"name": "awsService",
+					"type": "string",
+					"description": "The AWS service related to the incident (e.g., EC2, S3, Lambda)."
+				}
+			],
+			"return": {
+				"type": "object",
+				"description": "Detailed analysis of CloudWatch logs that provides evidence about what happened during the incident, including log group retrieval, error pattern searches, anomaly detection, unique error templates extraction, error aggregation, log correlation across services, normal behavior comparison, alarm status checks, and event timeline creation."
+			}
+		},
+		{
+			"name": "Code Analyzer Agent",
+			"description": "Analyze code repositories related to affected services.",
+			"resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+			"parameters": [
+				{
+					"name": "serviceAttributionData",
+					"type": "object",
+					"description": "Service attribution data containing package names, repository information, and details about affected services."
+				}
+			],
+			"return": {
+				"type": "object",
+				"description": "Comprehensive code analysis that identifies potential code-level causes for the incident, including error patterns, configuration files, recent code changes, deployment artifacts, code structure and dependencies, configuration settings, and potential code-related issues."
+			}
+		},
+		{
+			"name": "Root Cause Analyzer Agent",
+			"description": "Synthesize all available information to determine the root cause of the incident.",
+			"resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+			"parameters": [
+				{
+					"name": "timeline",
+					"type": "object",
+					"description": "Comprehensive timeline of the incident, including key events, timestamps, and descriptions of actions taken."
+				},
+				{
+					"name": "businessImpact",
+					"type": "object",
+					"description": "Assessment of the business impact of the incident, including affected services, customers, and financial implications."
+				},
+				{
+					"name": "rootCauseAnalysis",
+					"type": "object",
+					"description": "Root cause analysis methodologies applied to the incident, including 5 Whys analysis, contributing factors identification, evidence evaluation, and likelihood assessment of different potential causes."
+				},
+				{
+					"name": "primaryRootCause",
+					"type": "string",
+					"description": "The primary root cause identified through the analysis."
+				},
+				{
+					"name": "supportingEvidence",
+					"type": "object",
+					"description": "Supporting evidence collected during the analysis, including logs, code snippets, configuration files, and any other relevant data."
+				},
+				{
+					"name": "recommendations",
+					"type": "object",
+					"description": "Recommendations for immediate and long-term fixes to prevent recurrence of the incident."
+				},
+				{
+					"name": "stakeholders",
+					"type": "object",
+					"description": "List of stakeholders involved in the incident response and analysis, including their roles and responsibilities."
+				}
+			],
+			"return": {
+				"type": "object",
+				"description": "Detailed root cause analysis with evidence-based conclusions and actionable recommendations, including a comprehensive timeline of the incident, business impact assessment, root cause analysis methodologies applied, primary root cause identified, supporting evidence documented, and recommendations for immediate and long-term fixes."
+			}
+		},
+		{
+			"name": "Report Generator Agent",
+			"description": "Generate a comprehensive Root Cause Analysis (RCA) report based on the analysis from all previous agents.",
+			"resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+			"parameters": [
+				{
+					"name": "incidentAnalysis",
+					"type": "object",
+					"description": "Complete analysis from all previous agents, including executive summary, incident overview, timeline of events, impact assessment, technical details, root cause analysis, resolution steps, action items, and lessons learned."
+				}
+			],
+			"return": {
+				"type": "object",
+				"description": "Well-formatted, comprehensive Root Cause Analysis (RCA) report that clearly communicates what happened, why it happened, and how to prevent it in the future. The report includes an executive summary, structured incident overview, formatted timeline of events, impact assessment, technical details including CloudWatch findings, root cause analysis, resolution steps, action items with priorities, lessons learned, and relevant appendices with supporting data."
+			}
+		}
+    ]
+}

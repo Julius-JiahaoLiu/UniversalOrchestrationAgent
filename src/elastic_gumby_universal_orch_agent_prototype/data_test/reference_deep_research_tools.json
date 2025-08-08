@@ -1,0 +1,119 @@
+{
+	"available_tools": [
+		{
+			"name": "ResearchPlanGenerator",
+			"description": "Creates a comprehensive research plan that serves as the foundation for the entire research workflow. This is the initial component that runs before the Planner takes control of the process.",
+			"resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+			"parameters": [
+				{
+					"name": "research_topic",
+					"type": "string",
+					"description": "The main topic or question to be researched in detail."
+				}
+			],
+			"return": {
+				"type": "string",
+				"description": "A structured research plan that outlines the key areas to investigate, questions to answer, and approach to take for the given research topic. This plan is sent to the Planner to guide the entire research process."
+			}
+		},
+		{
+			"name": "Planner",
+			"description": "Orchestrates the entire research process by determining which actions to take next (search, write, edit) based on the research plan and current state. The Planner continues this cycle until it determines the article is complete.",
+			"resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+			"parameters": [
+				{
+					"name": "current_state",
+					"type": "string",
+					"description": "The current state of the research process, including what has been done so far and what information has been gathered."
+				},
+				{
+					"name": "research_plan",
+					"type": "string",
+					"description": "The comprehensive research plan that outlines the key areas to investigate and approach to take."
+				}
+			],
+			"return": {
+				"type": "string",
+				"description": "The next action to take in the research process, which could be searching for information, writing a section, editing a section, or finishing the research. This decision drives the workflow to the appropriate next step."
+			}
+		},
+		{
+			"name": "Searcher",
+			"description": "Retrieves and summarizes information from specified sources based on search criteria determined by the Planner. Supports searching external websites, internal websites, and knowledge bases. All retrieved documents are stored in a cache that accumulates results from multiple search operations.",
+			"resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+			"parameters": [
+				{
+					"name": "search_query",
+					"type": "string",
+					"description": "The search query to retrieve relevant documents. Should be specific and focused on the information needed."
+				},
+				{
+					"name": "search_number",
+					"type": "integer",
+					"description": "Number of results to retrieve from each source (must be a positive integer)."
+				},
+				{
+					"name": "source",
+					"type": "string",
+					"description": "Information source to query: 'external_webpages' (web search), 'internal_documents' (Amazon internal websites), or 'knowledge_base' (domain-specific knowledge base)."
+				}
+			],
+			"return": {
+				"type": "array",
+				"description": "Array of webpages or documents sent back to the Planner. The Planner would use them to determine subsequent actions. These webpages and documents are also stored in a cache that accumulates results from all search operations, which is later passed to the Writer and Editor tools as their 'documents' input."
+			}
+		},
+		{
+			"name": "Writer",
+			"description": "Creates a new section of an article with specific content based on provided guidelines and retrieved information. Invoked by the Planner when sufficient information has been gathered on a topic.",
+			"resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+			"parameters": [
+				{
+					"name": "section_name",
+					"type": "string",
+					"description": "Title or heading for the section to be created."
+				},
+				{
+					"name": "writing_goal",
+					"type": "string",
+					"description": "Detailed instructions specifying the content requirements, style, tone, and objectives for this section."
+				},
+				{
+					"name": "documents",
+					"type": "array",
+					"description": "Collection of documents retrieved from multiple search operations. These documents provide the source material and references that the Writer uses to create the section content."
+				}
+			],
+			"return": {
+				"type": "string",
+				"description": "Complete section text that fulfills the writing goal, includes the specified section name as a heading. This content is sent back to the Planner for assessment and potential further refinement."
+			}
+		},
+		{
+			"name": "Editor",
+			"description": "Modifies an existing section of an article according to specified revision criteria. Invoked by the Planner when a section needs refinement or updating with new information.",
+			"resource": "arn:aws:lambda:us-west-2:411097365838:function:ElasticGumbyUniversalOrchAgentPrototype-DemoLambda",
+			"parameters": [
+				{
+					"name": "section_name",
+					"type": "string",
+					"description": "Title or heading of the existing section to be edited. Must match exactly with an existing section in the document."
+				},
+				{
+					"name": "edit_goal",
+					"type": "string",
+					"description": "Detailed instructions specifying what changes to make, including content additions, removals, or refinements. Can request improving clarity, or expanding on specific points."
+				},
+				{
+					"name": "documents",
+					"type": "array",
+					"description": "Collection of documents retrieved from multiple search operations. These documents provide additional source material and references that the Editor uses to refine and update the section content."
+				}
+			],
+			"return": {
+				"type": "string",
+				"description": "Revised section text that incorporates all requested changes while maintaining the original section name. This edited content is sent back to the Planner for reassessment."
+			}
+		}
+	]
+}
